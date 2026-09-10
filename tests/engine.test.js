@@ -1,0 +1,18 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {scout,validateTrip} from '../dist/lib/engine.js';
+import {MockPreferenceInterpreter} from '../dist/lib/preferences.js';
+import {MockFlightProvider,MockHotelProvider} from '../dist/lib/providers.js';
+const t={origin:'SFO',destination:'Tokyo',start:'2026-11-02',end:'2026-11-04',nights:6,flightBudget:700,hotelBudget:180,rating:4.5,notes:''};
+const p=new MockPreferenceInterpreter();
+const hotels={search:async()=>[{id:'a',name:'Hotel',nightly:150,rating:4.6}]};
+const flights=price=>({search:async()=>[{id:'a',price,stops:0}]});
+test('main search flow compares all dates and computes exact whole-trip costs',async()=>{const r=await scout(t,p,new MockFlightProvider(),new MockHotelProvider());assert.equal(r.candidates.length,3);for(const c of r.candidates){assert.equal(c.total,c.flight.price+6*c.hotel.nightly);assert.ok(c.hotel.rating>=4.5);}assert.deepEqual(r,await scout(t,p,new MockFlightProvider(),new MockHotelProvider()));});
+test('BOOK when qualifying earliest date ties for best',async()=>{const r=await scout(t,p,flights(500),hotels);assert.equal(r.decision,'BOOK');assert.equal(r.best.total,1400);assert.equal(r.best.returnDate,'2026-11-08');});
+test('CHANGE DATE for at least 5% savings',async()=>{const r=await scout(t,p,{search:async(_,d)=>[{price:d===t.start?650:400,stops:0}]},hotels);assert.equal(r.decision,'CHANGE DATE');assert.equal(r.savings,250);});
+test('WAIT enforces separate budgets even with spare total budget',async()=>{const r=await scout({...t,hotelBudget:500},p,flights(701),hotels);assert.equal(r.decision,'WAIT');});
+test('empty results when rating requirement cannot be met',async()=>{const r=await scout({...t,rating:5},p,flights(500),hotels);assert.equal(r.decision,'WAIT');assert.equal(r.best,undefined);});
+test('nonstop preferences are hard filters',async()=>{const r=await scout({...t,notes:'nonstop and comfort'},p,{search:async()=>[{price:10,stops:1},{price:600,stops:0}]},hotels);assert.equal(r.best.flight.stops,0);assert.equal(r.preferences.priority,'comfort');});
+test('invalid date windows, duration, budgets and route are rejected',()=>{for(const change of [{end:'2026-01-01'},{end:'2027-11-02'},{start:'2026-02-30'},{nights:1.5},{flightBudget:0},{rating:6},{destination:'sfo'}])assert.throws(()=>validateTrip({...t,...change}));});
+test('malformed model output cannot influence calculations',async()=>{await assert.rejects(scout(t,{interpret:async()=>({priority:'madeup',nonstop:false})},flights(500),hotels));});
+test('single departure and year boundary use exact calendar nights',async()=>{const r=await scout({...t,start:'2026-12-30',end:'2026-12-30',nights:3},p,flights(500),hotels);assert.equal(r.checked,1);assert.equal(r.best.returnDate,'2027-01-02');});
