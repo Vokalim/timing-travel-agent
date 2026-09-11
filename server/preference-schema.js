@@ -19,7 +19,7 @@ export const PREFERENCE_OUTPUT_SCHEMA = {
     hotelBudgetPerNightCny:{type:['number','null'],minimum:1,maximum:100000},
     minimumHotelRating:{type:['number','null'],minimum:1,maximum:5},
     avoidOvernightFlights:{type:['boolean','null']},
-    travelIntents:{type:'array',items:{type:'string',enum:TRAVEL_INTENTS},uniqueItems:true,maxItems:11},
+    travelIntents:{type:'array',items:{type:'string',enum:TRAVEL_INTENTS},maxItems:11},
     domesticAllowed:{type:['boolean','null']},
     internationalAllowed:{type:['boolean','null']},
     pace:{type:['string','null'],enum:['relaxed','balanced','active',null]},

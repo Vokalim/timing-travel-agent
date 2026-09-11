@@ -47,6 +47,18 @@ test('a beach is an intent and never a literal destination',async()=>{
   assert.deepEqual(result.interpretation.travelIntents,['beach']);
 });
 
+test('strict schema omits unsupported keywords and normalization deduplicates travel intents',async()=>{
+  const unsupported=new Set(['uniqueItems','allOf','not','dependentRequired','dependentSchemas','if','then','else']);
+  const visit=value=>{
+    if(!value || typeof value!=='object') return;
+    for(const [key,child] of Object.entries(value)) { assert.equal(unsupported.has(key),false,`unsupported schema keyword: ${key}`);visit(child); }
+  };
+  visit(PREFERENCE_OUTPUT_SCHEMA);
+  const output={...base,origin:'Shanghai',originEvidence:'Shanghai',durationDays:5,travelIntents:['beach','beach','festive','beach']};
+  const result=await parseWith(output,'From Shanghai to a beach for a festive 5-day trip.');
+  assert.deepEqual(result.interpretation.travelIntents,['beach','festive']);
+});
+
 test('missing budget remains null and requires confirmation',async()=>{
   const output={...base,origin:'Shanghai',originEvidence:'Shanghai',destination:'Tokyo',destinationEvidence:'Tokyo',destinationState:'provided',durationDays:5};
   const result=await parseWith(output);

@@ -25,7 +25,7 @@ Every property is required by Structured Outputs; unknown values use `null` or a
     "hotelBudgetPerNightCny": { "type": ["number", "null"], "minimum": 1, "maximum": 100000 },
     "minimumHotelRating": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
     "avoidOvernightFlights": { "type": ["boolean", "null"] },
-    "travelIntents": { "type": "array", "items": { "type": "string", "enum": ["festive", "beach", "relaxation", "hiking", "food", "culture", "nature", "snow_winter", "shopping", "family", "romantic"] }, "uniqueItems": true, "maxItems": 11 },
+    "travelIntents": { "type": "array", "items": { "type": "string", "enum": ["festive", "beach", "relaxation", "hiking", "food", "culture", "nature", "snow_winter", "shopping", "family", "romantic"] }, "maxItems": 11 },
     "domesticAllowed": { "type": ["boolean", "null"] },
     "internationalAllowed": { "type": ["boolean", "null"] },
     "pace": { "type": ["string", "null"], "enum": ["relaxed", "balanced", "active", null] },
