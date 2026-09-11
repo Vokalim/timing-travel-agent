@@ -1,13 +1,16 @@
+import {createTripRequest, requireDestination} from './trip-request.js';
 import {validatePreferences} from './preferences.js';
 export const addDays=(date,n)=>new Date(Date.parse(date+'T00:00:00Z')+n*86400000).toISOString().slice(0,10);
 export function validateTrip(t) {
-  if(!t.origin?.trim()||!t.destination?.trim()) throw new Error('Enter an origin and destination.');
+  t = createTripRequest(t);
+  requireDestination(t);
+  if(!t.origin?.trim()) throw new Error('Enter an origin.');
   if(t.origin.trim().toLowerCase()===t.destination.trim().toLowerCase()) throw new Error('Choose a destination different from your origin.');
   for(const k of ['start','end']) if(!/^\d{4}-\d{2}-\d{2}$/.test(t[k])||!Number.isFinite(Date.parse(t[k]))||new Date(t[k]).toISOString().slice(0,10)!==t[k]) throw new Error('Enter valid travel dates.');
   const days=(Date.parse(t.end)-Date.parse(t.start))/86400000;
   if(days<0||days>60) throw new Error('Use a departure window of 0–60 days.');
   if(!Number.isInteger(t.nights)||t.nights<1||t.nights>30) throw new Error('Trip duration must be 1–30 nights.');
-  if(![t.flightBudget,t.hotelBudget].every(n=>Number.isFinite(n)&&n>0&&n<=100000)) throw new Error('Budgets must be between $1 and $100,000.');
+  if(![t.flightBudget,t.hotelBudget].every(n=>Number.isFinite(n)&&n>0&&n<=100000)) throw new Error('Budgets must be between ¥1 and ¥100,000.');
   if(!Number.isFinite(t.rating)||t.rating<1||t.rating>5) throw new Error('Minimum rating must be between 1 and 5.');
 }
 export function scoreQuote(t,p,f,h) {
@@ -20,8 +23,10 @@ export function scoreQuote(t,p,f,h) {
   return {flight:f,hotel:h,total,feasible,score};
 }
 export async function scout(t, interpreter, flights, hotels) {
+  t = createTripRequest(t);
   validateTrip(t);
-  const preferences=validatePreferences(await interpreter.interpret(t.notes||''));
+  const interpreted=await interpreter.interpret(t.notes||'',{travelIntents:t.travelIntents});
+  const preferences=validatePreferences({...interpreted,travelIntents:t.travelIntents});
   const dates=[];for(let d=t.start;d<=t.end;d=addDays(d,1))dates.push(d);
   const candidates=await Promise.all(dates.map(async date=>{
     const [fs,hs]=await Promise.all([flights.search(t,date),hotels.search(t,date)]);
