@@ -20,6 +20,7 @@ export function setupTripInput(form,onDraftChange,parser=new FallbackPreferenceP
   for(const message of [draft.dateHint&&`${t('日期描述','Date wording')}：${draft.dateHint}`,...draft.warnings,draft.fields.notes&&`${t('已记录偏好','Captured preferences')}：${draft.fields.notes}`,draft.parserStatus==='fallback'&&`${draft.fallbackReason} ${t('此结果明确标记为本地解析。','This result is explicitly labeled as local fallback.')}`]){if(!message)continue;const p=document.createElement('p');p.textContent=message;review.append(p);}
  };
  button.addEventListener('click',async()=>{
+  console.info('[Timing] Explore click received');
   if(!input.value.trim()){review.hidden=false;review.textContent=t('请先描述你的旅行，当前条件没有改变。','Describe your trip first. Your form has not changed.');return;}
   button.disabled=true;status.hidden=false;
   try{const draft=await parser.parse(input.value);lastDraft=draft;for(const key of [...Object.keys(tripFields),'notes']){const field=form.elements.namedItem(key);field.value=draft.fields[key]??'';field.classList.toggle('needs-confirmation',draft.needsConfirmation.includes(key));field.setAttribute('aria-describedby','trip-review');}travelIntents.value=draft.fields.travelIntents.join(',');renderReview(draft);onDraftChange(draft);}

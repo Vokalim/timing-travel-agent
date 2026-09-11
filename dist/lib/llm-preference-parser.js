@@ -26,11 +26,13 @@ function toDraft(payload) {
 /** Browser-side PreferenceParser adapter. Credentials remain behind the same-origin route. */
 export class LLMPreferenceParser extends PreferenceParser {
   constructor({fetchImpl=globalThis.fetch,endpoint='/api/travel/preferences/parse',timeoutMs=25000}={}) {
-    super(); this.fetchImpl=fetchImpl; this.endpoint=endpoint; this.timeoutMs=timeoutMs;
+    super(); this.fetchImpl=fetchImpl?.bind(globalThis); this.endpoint=endpoint; this.timeoutMs=timeoutMs;
   }
   async parse(text) {
+    console.info('[Timing] LLMPreferenceParser.parse started');
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),this.timeoutMs);
     try {
+      console.info('[Timing] Preference API fetch about to be sent',{method:'POST',endpoint:this.endpoint});
       const response=await this.fetchImpl(this.endpoint,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',signal:controller.signal,body:JSON.stringify({text})});
       const payload=await response.json().catch(()=>null);
       if (!response.ok) throw new PreferenceParserError(payload?.error?.code || 'PREFERENCE_PARSER_UNAVAILABLE',payload?.error?.message || 'AI trip interpretation is unavailable.');
@@ -48,6 +50,7 @@ export class FallbackPreferenceParser extends PreferenceParser {
   async parse(text) {
     try { return await this.primary.parse(text); }
     catch(error) {
+      console.warn('[Timing] Primary preference parser failed; local fallback started',{code:error?.code || 'PREFERENCE_PARSER_UNAVAILABLE'});
       const draft=await this.fallback.parse(text);
       return {...draft,source:'demo_fallback',parserStatus:'fallback',fallbackReason:error.message || 'AI trip interpretation is unavailable.'};
     }
