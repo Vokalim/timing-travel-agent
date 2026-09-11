@@ -1,5 +1,7 @@
 import {searchTravel} from './lib/travel-service.js';
 import {setupTripInput} from './trip-input.js';
+import {DemoPreferenceParser} from './lib/preference-parser.js';
+import {FallbackPreferenceParser,LLMPreferenceParser} from './lib/llm-preference-parser.js';
 
 const form=document.querySelector('#trip-form'),output=document.querySelector('#results');
 const modeControl=document.querySelector('#data-mode'),indicator=document.querySelector('#source-indicator');
@@ -76,5 +78,9 @@ modeControl.addEventListener('change',changeMode);form.addEventListener('submit'
 document.querySelector('#edit-request').addEventListener('click',()=>{structured.open=true;document.querySelector('#ask-state').scrollIntoView({behavior:'smooth'});});
 document.querySelector('#lang-zh').addEventListener('click',()=>applyLanguage('zh'));document.querySelector('#lang-en').addEventListener('click',()=>applyLanguage('en'));
 document.querySelectorAll('.inspire-chip').forEach(chip=>chip.addEventListener('click',()=>{const input=document.querySelector('#trip-description'),phrase=chip.dataset[language];input.value=input.value.trim()?`${input.value.trim()}${language==='zh'?'，':'. '}${phrase}`:phrase;input.focus();}));
-setupTripInput(form,draft=>{++editVersion;agentStatus.hidden=true;document.querySelector('#stale').hidden=!result;if(draft.interpretation?.destinationState==='discovery_required')showDiscovery(draft);else if(draft.needsConfirmation.length)structured.open=true;else form.requestSubmit();});
+const preferenceParser=new FallbackPreferenceParser(
+ new LLMPreferenceParser({endpoint:'/api/travel/preferences/parse'}),
+ new DemoPreferenceParser()
+);
+setupTripInput(form,draft=>{++editVersion;agentStatus.hidden=true;document.querySelector('#stale').hidden=!result;if(draft.interpretation?.destinationState==='discovery_required')showDiscovery(draft);else if(draft.needsConfirmation.length)structured.open=true;else form.requestSubmit();},preferenceParser);
 applyLanguage('zh');
