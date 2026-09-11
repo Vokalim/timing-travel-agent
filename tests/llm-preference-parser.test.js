@@ -80,6 +80,27 @@ test('malformed LLM output and unavailable API fail with explicit parser states'
   await assert.rejects(new ServerLLMPreferenceParser({apiKey:'x',fetchImpl:async()=>apiResponse(null,{ok:false,status:500})}).parse('A trip'),{code:'PREFERENCE_PARSER_UNAVAILABLE'});
 });
 
+test('OpenAI HTTP failure logs sanitized upstream diagnostics and preserves the user-facing error',async()=>{
+  const entries=[],apiKey='sk-sensitive-test-key',input='Private trip description';
+  const logger={error:(message,details)=>entries.push({message,details})};
+  const fetchImpl=async()=>({ok:false,status:429,json:async()=>({error:{type:'insufficient_quota',code:'insufficient_quota',message:`Quota failed for ${input} with Bearer ${apiKey}`}})});
+  const parser=new ServerLLMPreferenceParser({apiKey,model:'test-model',fetchImpl,logger});
+  await assert.rejects(parser.parse(input),error=>error.status===503 && error.message==='AI trip interpretation is unavailable because the model request failed.');
+  assert.deepEqual(entries,[{message:'[Timing] OpenAI preference request failed',details:{status:429,errorType:'insufficient_quota',errorCode:'insufficient_quota',message:'Quota failed for [REDACTED] with [REDACTED]',model:'test-model'}}]);
+  const logged=JSON.stringify(entries);
+  assert.doesNotMatch(logged,/sk-sensitive-test-key|Private trip description|Authorization/i);
+});
+
+test('pre-response OpenAI failures log only a safe failure category',async()=>{
+  for(const [error,timeoutMs,expected] of [[Object.assign(new TypeError('secret network detail'),{cause:{code:'ENOTFOUND'}}),20000,'DNS/network'],[Object.assign(new TypeError('secret connection detail'),{cause:{code:'ECONNREFUSED'}}),20000,'connection failure'],[new Error('late secret'),0,'timeout']]) {
+    const entries=[],logger={error:(message,details)=>entries.push({message,details})};
+    const fetchImpl=timeoutMs===0?async(_url,{signal})=>new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(new Error('late secret')))):async()=>{throw error;};
+    await assert.rejects(new ServerLLMPreferenceParser({apiKey:'sk-hidden',fetchImpl,timeoutMs,logger}).parse('hidden trip'),{code:'PREFERENCE_PARSER_UNAVAILABLE'});
+    assert.deepEqual(entries,[{message:'[Timing] OpenAI preference request failed before response',details:{failure:expected}}]);
+    assert.doesNotMatch(JSON.stringify(entries),/secret|sk-hidden|hidden trip/i);
+  }
+});
+
 test('browser fallback is explicit and never labels the heuristic draft as AI-generated',async()=>{
   const unavailable=new BrowserLLMPreferenceParser({fetchImpl:async()=>({ok:false,json:async()=>({error:{code:'PREFERENCE_PARSER_UNAVAILABLE',message:'AI unavailable'}})})});
   const parser=new FallbackPreferenceParser(unavailable,new DemoPreferenceParser());

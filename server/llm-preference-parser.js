@@ -23,10 +23,23 @@ const outputText = payload => {
   return null;
 };
 
+const sanitizedMessage=(value,apiKey,input)=>{
+  if(typeof value!=='string') return null;
+  let message=value.replace(/[\r\n\t]+/g,' ').replace(/Bearer\s+\S+/gi,'[REDACTED]').replace(/sk-[A-Za-z0-9_-]+/g,'[REDACTED]');
+  for(const sensitive of [apiKey,input]) if(sensitive) message=message.replaceAll(sensitive,'[REDACTED]');
+  return message.trim().slice(0,500) || null;
+};
+const networkFailureKind=(error,aborted)=>{
+  if(aborted) return 'timeout';
+  const code=error?.cause?.code || error?.code;
+  if(['ECONNREFUSED','ECONNRESET','ECONNABORTED','EHOSTUNREACH','ETIMEDOUT'].includes(code)) return 'connection failure';
+  return 'DNS/network';
+};
+
 /** Server-side LLM implementation of the PreferenceParser contract. */
 export class LLMPreferenceParser {
-  constructor({apiKey,model='gpt-4o-mini',fetchImpl=globalThis.fetch,timeoutMs=20000}={}) {
-    this.apiKey=apiKey; this.model=model; this.fetchImpl=fetchImpl; this.timeoutMs=timeoutMs;
+  constructor({apiKey,model='gpt-4o-mini',fetchImpl=globalThis.fetch,timeoutMs=20000,logger=console}={}) {
+    this.apiKey=apiKey; this.model=model; this.fetchImpl=fetchImpl; this.timeoutMs=timeoutMs; this.logger=logger;
   }
   async parse(input) {
     const text=String(input ?? '').trim();
@@ -39,7 +52,17 @@ export class LLMPreferenceParser {
         body:JSON.stringify({model:this.model,instructions,input:text,store:false,max_output_tokens:1200,
           text:{format:{type:'json_schema',name:PREFERENCE_SCHEMA_NAME,strict:true,schema:PREFERENCE_OUTPUT_SCHEMA}}})
       });
-      if (!response.ok) throw new PreferenceParserUnavailableError('AI trip interpretation is unavailable because the model request failed.');
+      if (!response.ok) {
+        const upstream=await response.json().catch(()=>null),openaiError=upstream?.error;
+        this.logger.error('[Timing] OpenAI preference request failed',{
+          status:response.status,
+          errorType:typeof openaiError?.type==='string'?openaiError.type:null,
+          errorCode:typeof openaiError?.code==='string'?openaiError.code:null,
+          message:sanitizedMessage(openaiError?.message,this.apiKey,text),
+          model:this.model
+        });
+        throw new PreferenceParserUnavailableError('AI trip interpretation is unavailable because the model request failed.');
+      }
       const payload=await response.json().catch(()=>null),raw=outputText(payload);
       if (!raw) throw new InvalidPreferenceOutputError();
       let parsed;
@@ -47,6 +70,7 @@ export class LLMPreferenceParser {
       return {...normalizePreferenceOutput(parsed,text),source:'openai',parserStatus:'ai',model:this.model};
     } catch(error) {
       if (error instanceof InvalidPreferenceOutputError || error instanceof PreferenceParserUnavailableError) throw error;
+      this.logger.error('[Timing] OpenAI preference request failed before response',{failure:networkFailureKind(error,controller.signal.aborted)});
       throw new PreferenceParserUnavailableError(controller.signal.aborted?'AI trip interpretation timed out.':'AI trip interpretation is unavailable.');
     } finally { clearTimeout(timer); }
   }
