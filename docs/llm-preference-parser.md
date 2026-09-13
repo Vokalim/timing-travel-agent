@@ -21,6 +21,7 @@ Every property is required by Structured Outputs; unknown values use `null` or a
     "latestDeparture": { "type": ["string", "null"] },
     "departureWindowText": { "type": ["string", "null"] },
     "durationDays": { "type": ["integer", "null"], "minimum": 1, "maximum": 30 },
+    "totalTripBudgetCny": { "type": ["number", "null"], "minimum": 1, "maximum": 300000 },
     "flightBudgetCny": { "type": ["number", "null"], "minimum": 1, "maximum": 100000 },
     "hotelBudgetPerNightCny": { "type": ["number", "null"], "minimum": 1, "maximum": 100000 },
     "minimumHotelRating": { "type": ["number", "null"], "minimum": 1, "maximum": 5 },
@@ -31,7 +32,7 @@ Every property is required by Structured Outputs; unknown values use `null` or a
     "pace": { "type": ["string", "null"], "enum": ["relaxed", "balanced", "active", null] },
     "preferences": { "type": "array", "items": { "type": "string", "maxLength": 120 }, "maxItems": 10 }
   },
-  "required": ["origin", "originEvidence", "destination", "destinationEvidence", "destinationState", "earliestDeparture", "latestDeparture", "departureWindowText", "durationDays", "flightBudgetCny", "hotelBudgetPerNightCny", "minimumHotelRating", "avoidOvernightFlights", "travelIntents", "domesticAllowed", "internationalAllowed", "pace", "preferences"],
+  "required": ["origin", "originEvidence", "destination", "destinationEvidence", "destinationState", "earliestDeparture", "latestDeparture", "departureWindowText", "durationDays", "totalTripBudgetCny", "flightBudgetCny", "hotelBudgetPerNightCny", "minimumHotelRating", "avoidOvernightFlights", "travelIntents", "domesticAllowed", "internationalAllowed", "pace", "preferences"],
   "additionalProperties": false
 }
 ```

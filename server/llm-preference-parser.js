@@ -14,6 +14,7 @@ Copy the exact origin and destination wording into the matching Evidence fields.
 Use festive for Christmas or strong holiday atmosphere. Use snow_winter for snow or winter experiences.
 Only return exact ISO dates when the user supplied enough information including a year. Put broad or incomplete wording such as December or 12月 in departureWindowText and leave exact dates null.
 CNY amounts may be written as CNY, RMB, yuan, 元, ¥, or ￥. Do not convert other currencies.
+Use totalTripBudgetCny for “total budget” or an unqualified general “budget”. Only use flightBudgetCny or hotelBudgetPerNightCny when the user explicitly assigns the amount to flights or nightly hotels. Never invent a split.
 Set optional fields to null and arrays to [] when they were not explicitly stated.`;
 
 const outputText = payload => {

@@ -6,7 +6,7 @@ import {FallbackPreferenceParser,LLMPreferenceParser as BrowserLLMPreferencePars
 import {DemoPreferenceParser,PreferenceParser} from '../dist/lib/preference-parser.js';
 
 const base={origin:null,originEvidence:null,destination:null,destinationEvidence:null,destinationState:'discovery_required',
-  earliestDeparture:null,latestDeparture:null,departureWindowText:null,durationDays:null,flightBudgetCny:null,
+  earliestDeparture:null,latestDeparture:null,departureWindowText:null,durationDays:null,totalTripBudgetCny:null,flightBudgetCny:null,
   hotelBudgetPerNightCny:null,minimumHotelRating:null,avoidOvernightFlights:null,travelIntents:[],
   domesticAllowed:null,internationalAllowed:null,pace:null,preferences:[]};
 const apiResponse=(value,{ok=true,status=200}={})=>({ok,status,json:async()=>ok?{output:[{type:'message',content:[{type:'output_text',text:typeof value==='string'?value:JSON.stringify(value)}]}]}:{error:{message:'failed'}}});
@@ -32,7 +32,7 @@ test('Chinese Christmas trip keeps destination null and captures the broad windo
     avoidOvernightFlights:true,travelIntents:['festive'],domesticAllowed:true,internationalAllowed:true};
   const result=await parseWith(output,'12月从上海出发，想找一个圣诞氛围很浓的地方玩5天，往返机票2000元以内，不要红眼，国内国外都可以。');
   assert.deepEqual(result.interpretation,{origin:'Shanghai',destination:null,destinationState:'discovery_required',earliestDeparture:null,latestDeparture:null,
-    departureWindowText:'12月',durationDays:5,flightBudgetCny:2000,hotelBudgetPerNightCny:null,minimumHotelRating:null,
+    departureWindowText:'12月',durationDays:5,totalTripBudgetCny:null,flightBudgetCny:2000,hotelBudgetPerNightCny:null,minimumHotelRating:null,
     avoidOvernightFlights:true,travelIntents:['festive'],domesticAllowed:true,internationalAllowed:true,pace:null,preferences:[]});
   assert.ok(result.needsConfirmation.includes('destination'));
   assert.ok(result.needsConfirmation.includes('earliestDeparture'));
@@ -65,6 +65,14 @@ test('missing budget remains null and requires confirmation',async()=>{
   assert.equal(result.interpretation.flightBudgetCny,null);
   assert.ok(result.needsConfirmation.includes('flightBudgetCny'));
   assert.ok(result.needsConfirmation.includes('hotelBudgetPerNightCny'));
+});
+
+test('an unqualified budget remains a total trip signal without an invented split',async()=>{
+  const output={...base,origin:'Shanghai',originEvidence:'上海',departureWindowText:'12月',durationDays:5,totalTripBudgetCny:3000};
+  const result=await parseWith(output,'12月上海出发，5天，预算3000，想出去玩但不知道去哪。');
+  assert.equal(result.interpretation.totalTripBudgetCny,3000);
+  assert.equal(result.interpretation.flightBudgetCny,null);
+  assert.equal(result.interpretation.hotelBudgetPerNightCny,null);
 });
 
 test('Chinese explicit Tokyo destination normalizes to the English provider-facing place',async()=>{

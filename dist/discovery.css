@@ -1,0 +1,13 @@
+.discovery-result .rec-route small{display:block;font-family:'DM Sans','Noto Sans SC',sans-serif;font-size:16px;font-weight:500;color:#b8c7c1;margin-top:8px}
+.discovery-result .fit-reasons{margin-top:28px;position:relative;z-index:1}
+.flight-verification{position:relative;z-index:1;margin:24px 0 0;color:#d5e0dc;font-size:13px}
+.discovery-alternatives{margin-top:42px}
+.idea-list{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.idea-list article{background:#f6f4ef;padding:22px}
+.idea-list article>div{display:flex;gap:9px;align-items:baseline}
+.idea-list strong{font-family:'Playfair Display','Noto Sans SC',serif;font-size:24px}
+.idea-list span,.idea-list small{color:var(--muted);font-size:12px}
+.idea-list article>b{float:right;margin-top:-25px;color:var(--green)}
+.idea-list p{min-height:38px;color:#4f5f58;font-size:13px}
+.discovery-alternatives>button{margin:24px auto 0;display:block;border:1px solid #bdc8c2;background:transparent;color:var(--green);border-radius:999px;padding:11px 18px;cursor:pointer}
+@media(max-width:760px){.idea-list{grid-template-columns:1fr}}

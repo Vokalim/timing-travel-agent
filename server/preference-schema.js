@@ -15,6 +15,7 @@ export const PREFERENCE_OUTPUT_SCHEMA = {
     latestDeparture:{...nullable('string'),description:'Exact ISO 8601 date only when explicitly supplied with a year.'},
     departureWindowText:{...nullable('string'),description:'Broad or incomplete date wording such as December or 12月.'},
     durationDays:{type:['integer','null'],minimum:1,maximum:30},
+    totalTripBudgetCny:{type:['number','null'],minimum:1,maximum:300000},
     flightBudgetCny:{type:['number','null'],minimum:1,maximum:100000},
     hotelBudgetPerNightCny:{type:['number','null'],minimum:1,maximum:100000},
     minimumHotelRating:{type:['number','null'],minimum:1,maximum:5},
@@ -25,7 +26,7 @@ export const PREFERENCE_OUTPUT_SCHEMA = {
     pace:{type:['string','null'],enum:['relaxed','balanced','active',null]},
     preferences:{type:'array',items:{type:'string',maxLength:120},maxItems:10}
   },
-  required:['origin','originEvidence','destination','destinationEvidence','destinationState','earliestDeparture','latestDeparture','departureWindowText','durationDays','flightBudgetCny','hotelBudgetPerNightCny','minimumHotelRating','avoidOvernightFlights','travelIntents','domesticAllowed','internationalAllowed','pace','preferences'],
+  required:['origin','originEvidence','destination','destinationEvidence','destinationState','earliestDeparture','latestDeparture','departureWindowText','durationDays','totalTripBudgetCny','flightBudgetCny','hotelBudgetPerNightCny','minimumHotelRating','avoidOvernightFlights','travelIntents','domesticAllowed','internationalAllowed','pace','preferences'],
   additionalProperties:false
 };
 

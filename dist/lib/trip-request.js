@@ -3,7 +3,7 @@ export const TRAVEL_INTENTS = ['festive','beach','relaxation','hiking','food','c
 /** Internal request model; null destination is reserved for future discovery.
  * @typedef {{origin:string, destination?:string|null, currency?:string,
  * start:string, end:string, nights:number, flightBudget:number, hotelBudget:number,
- * rating:number, notes?:string, travelIntents?:string[]}} TripRequest
+ * rating:number, totalTripBudgetCny?:number|null, notes?:string, travelIntents?:string[]}} TripRequest
  * Amounts are numeric major units of currency (yuan for CNY).
  */
 export function normalizeTravelIntents(value) {

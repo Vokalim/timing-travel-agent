@@ -44,7 +44,7 @@ export function normalizePreferenceOutput(value,input) {
   const nullableNumber=key=>value[key]===null || typeof value[key]==='number';
   const nullableBoolean=key=>value[key]===null || typeof value[key]==='boolean';
   if (!['origin','originEvidence','destination','destinationEvidence','earliestDeparture','latestDeparture','departureWindowText'].every(nullableString) ||
-    !['durationDays','flightBudgetCny','hotelBudgetPerNightCny','minimumHotelRating'].every(nullableNumber) ||
+    !['durationDays','totalTripBudgetCny','flightBudgetCny','hotelBudgetPerNightCny','minimumHotelRating'].every(nullableNumber) ||
     !['avoidOvernightFlights','domesticAllowed','internationalAllowed'].every(nullableBoolean) ||
     !['provided','discovery_required'].includes(value.destinationState) || !Array.isArray(value.travelIntents) || !Array.isArray(value.preferences) ||
     !(value.pace===null || ['relaxed','balanced','active'].includes(value.pace))) throw new InvalidPreferenceOutputError();
@@ -62,7 +62,7 @@ export function normalizePreferenceOutput(value,input) {
   const interpretation={
     origin,destination,destinationState:destination?'provided':'discovery_required',
     earliestDeparture:datesValid?earliestDeparture:null,latestDeparture:datesValid?latestDeparture:null,departureWindowText,
-    durationDays:finite(value.durationDays,1,30,true),flightBudgetCny:finite(value.flightBudgetCny,1,100000),
+    durationDays:finite(value.durationDays,1,30,true),totalTripBudgetCny:finite(value.totalTripBudgetCny,1,300000),flightBudgetCny:finite(value.flightBudgetCny,1,100000),
     hotelBudgetPerNightCny:finite(value.hotelBudgetPerNightCny,1,100000),minimumHotelRating:finite(value.minimumHotelRating,1,5),
     avoidOvernightFlights:typeof value.avoidOvernightFlights==='boolean'?value.avoidOvernightFlights:null,
     travelIntents,domesticAllowed:typeof value.domesticAllowed==='boolean'?value.domesticAllowed:null,

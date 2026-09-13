@@ -43,12 +43,23 @@ export class DemoPreferenceParser extends PreferenceParser {
       const proposed=route[0][2].trim();
       if (!/^(?:a |an |the )?(?:beach|somewhere|someplace|warm place|place to hike|christmas destination)$/i.test(proposed)) fields.destination=proposed;
     }
+    if (!fields.origin) {
+      const found=[['上海','Shanghai'],['北京','Beijing'],['广州','Guangzhou'],['深圳','Shenzhen'],['成都','Chengdu'],['香港','Hong Kong']].find(([name])=>text.includes(name));
+      if(found)fields.origin=found[1];
+    }
+    if (!fields.destination) {
+      const found=[['东京','Tokyo'],['東京','Tokyo'],['大阪','Osaka'],['首尔','Seoul'],['首爾','Seoul'],['新加坡','Singapore'],['曼谷','Bangkok'],['伦敦','London'],['巴黎','Paris']].find(([name])=>new RegExp(`(?:去|到)${name}`).test(text));
+      if(found)fields.destination=found[1];
+    }
     fields.nights = unique(text,/\b(\d+)\s+nights?\b/gi, Number);
+    if (!fields.nights) fields.nights=unique(text,/(\d+)\s*(?:天|晚)/g,Number);
     const cny = !/(?:[$€£]|\b(?:USD|EUR|GBP|JPY|CAD|AUD|HKD)\b)/i.test(text);
     if (cny) {
       const amount = '(?:[¥￥]|CNY\\s*|RMB\\s*)'+number;
       fields.flightBudget = unique(text,new RegExp('\\bround[- ]trip flight budget\\s*(?:is|of|:)?\\s*'+amount,'gi'),s=>Number(s.replaceAll(',','')));
       fields.hotelBudget = unique(text,new RegExp('\\bhotel budget\\s*(?:is|of|:)?\\s*'+amount+'\\s*(?:per|a|/)\\s*night','gi'),s=>Number(s.replaceAll(',','')));
+      const general=[...text.matchAll(/(?<!机票|酒店|住宿)(?:总预算|總預算|预算|預算)\s*(?:是|为|為|:)?\s*(?:[¥￥]|CNY\s*|RMB\s*)?(\d+(?:,\d{3})*(?:\.\d+)?)/gi),...text.matchAll(/(?<!flight )(?<!hotel )(?<!airfare )\b(?:total\s+)?budget\s*(?:is|of|:)?\s*(?:[¥￥]|CNY\s*|RMB\s*)?(\d+(?:,\d{3})*(?:\.\d+)?)/gi)].map(match=>Number(match[1].replaceAll(',','')));
+      if(general.length&&general.every(value=>value===general[0]))fields.totalTripBudgetCny=general[0];
     } else warnings.push('Only CNY/RMB budgets are supported. Confirm both budgets in yuan; no currency conversion was applied.');
     fields.rating = unique(text,/\b(?:minimum (?:hotel |guest )?rating|rating of at least)\s*(?:is|of|:)?\s*(\d(?:\.\d+)?)\s*(?:\/\s*5|out of 5)\b/gi,Number);
     let dateHint = '';
@@ -82,7 +93,9 @@ export class DemoPreferenceParser extends PreferenceParser {
     }
     fields.notes = notes.join('. ');
     for (const key of Object.keys(fields)) if (fields[key] === undefined) delete fields[key];
-    return {fields, needsConfirmation:Object.keys(tripFields).filter(key=>fields[key]===undefined), warnings, dateHint,
+    const broadMonth=text.match(/(?:^|\D)(1[0-2]|0?[1-9])\s*月/);if(!dateHint&&broadMonth)dateHint=broadMonth[0].trim();
+    const interpretation={origin:fields.origin||null,destination:fields.destination||null,destinationState:fields.destination?'provided':'discovery_required',earliestDeparture:fields.start||null,latestDeparture:fields.end||null,departureWindowText:dateHint||null,durationDays:fields.nights||null,totalTripBudgetCny:fields.totalTripBudgetCny||null,flightBudgetCny:fields.flightBudget||null,hotelBudgetPerNightCny:fields.hotelBudget||null,minimumHotelRating:fields.rating||null,avoidOvernightFlights:/不要红眼|避免红眼|avoid (?:overnight|red[- ]?eye)/i.test(text)?true:null,travelIntents:fields.travelIntents,domesticAllowed:null,internationalAllowed:null,pace:null,preferences:[]};
+    return {fields, needsConfirmation:Object.keys(tripFields).filter(key=>fields[key]===undefined), warnings, dateHint,interpretation,
       source:'demo',parserStatus:'demo'};
   }
 }
