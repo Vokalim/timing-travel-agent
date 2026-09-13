@@ -1,6 +1,10 @@
 import {createTravelProviders} from '../providers/index.js';
 import {createTemporalContext,planRepresentativeDateWindows} from './temporal-context.js';
 import {transportAvailability} from './transport-modes.js';
+import {destinationIdentity} from './destination-identity.js';
+import {createTripRequest} from '../trip-request.js';
+import {isOvernightFlight} from '../engine.js';
+import {isExcludedDestination} from '../preference-constraints.js';
 
 const catalog=[
  {city:'Beijing',countryOrRegion:'China',iataOrMetroCode:'BJS',themes:['culture','food','festive'],seasonal:['History and winter city experiences'],general:['Museums and neighborhoods for a city break']},
@@ -58,13 +62,16 @@ const acceptableTiming=quote=>{
     departures.every(value=>{const hour=Number(value.slice(11,13));return hour>=6&&hour<24;})&&
     !quote.segments?.some(segment=>segment.overnight===true);
 };
+const withinDuration=(quote,maxMinutes)=>{if(maxMinutes==null)return true;const segments=quote.segments;if(!Array.isArray(segments)||!segments.length)return false;const durations=segments.map(segment=>Date.parse(segment.arrivingAt)-Date.parse(segment.departingAt));return durations.every(value=>Number.isFinite(value)&&value>=0)&&durations.reduce((a,b)=>a+b,0)<=maxMinutes*60000;};
 async function verifyFlights(candidate,preferences,windows,flightProvider,mode){
-  if(!windows.length||!preferences.origin||!preferences.durationDays)return {status:'not_checked',reason:'Exact or representative travel dates are not available.',source:mode};
+  if(!windows.length||!preferences.origin||!preferences.durationDays)return {status:'not_checked',reason:'Representative travel dates are not available.',source:mode};
   const quotes=[];let failure;
   for(const window of windows){try{const found=await flightProvider.search({origin:preferences.origin,destination:candidate.city,currency:'CNY',nights:preferences.durationDays},window.departure);for(const quote of found)quotes.push({...quote,window});}catch(error){failure=error;}}
-  const eligible=preferences.avoidOvernightFlights?quotes.filter(acceptableTiming):quotes;
+  const hard=preferences.constraints?.hard||{};
+  const eligible=quotes.filter(q=>(!preferences.avoidOvernightFlights&&!hard.avoidOvernightFlights||acceptableTiming(q))&&(!hard.directFlightRequired||q.stops===0)&&(hard.maxStops==null||q.stops<=hard.maxStops)&&withinDuration(q,hard.maxFlightDurationMinutes)&&(preferences.flightBudgetCny==null||!hard.strictBudgetCap||q.price<=preferences.flightBudgetCny));
   if(!eligible.length)return {status:'unavailable',reason:failure?.message||'No usable flight was found for the exploration windows.',source:mode};
-  eligible.sort((a,b)=>a.price-b.price);return {status:'verified',quote:eligible[0],source:mode};
+  const strong=preferences.constraints?.strong||{};
+  eligible.sort((a,b)=>(a.price-(strong.directFlightPreferred&&a.stops===0?800:0)-(strong.avoidOvernightFlightsPreferred&&!isOvernightFlight(a)?800:0))-(b.price-(strong.directFlightPreferred&&b.stops===0?800:0)-(strong.avoidOvernightFlightsPreferred&&!isOvernightFlight(b)?800:0)));return {status:'verified',quote:eligible[0],source:mode};
 }
 function scoreCandidate(candidate,preferences,context,verification,popularity){
   const explicit=preferences.travelIntents||[],inferred=(context.inferredTravelIntents||[]).filter(theme=>!explicit.includes(theme));let score=30;
@@ -73,6 +80,11 @@ function scoreCandidate(candidate,preferences,context,verification,popularity){
   if(shortHaul.has(candidate.city)&&preferences.durationDays&&preferences.durationDays<=6)score+=10;
   score+=popularity.score;
   if(verification.status==='verified'){score+=10;if(verification.quote.stops===0)score+=5;if(preferences.flightBudgetCny!=null)score+=verification.quote.price<=preferences.flightBudgetCny?10:-10;else if(preferences.totalTripBudgetCny!=null&&verification.quote.price<preferences.totalTripBudgetCny)score+=5;}
+  const strong=preferences.constraints?.strong||{},soft=preferences.constraints?.soft||{};
+  if(verification.status==='verified'){if(strong.directFlightPreferred)score+=verification.quote.stops===0?16:-12;if(strong.avoidOvernightFlightsPreferred)score+=isOvernightFlight(verification.quote)?-16:16;}
+  if(strong.seasidePreferred)score+=candidate.themes.includes('beach')?12:-6;
+  if(strong.mountainPreferred||strong.naturePreferred)score+=candidate.themes.includes('nature')?10:-5;
+  for(const [key,theme] of [['localFood','food'],['shopping','shopping'],['culture','culture'],['nature','nature'],['relaxation','relaxation'],['family','family'],['romantic','romantic']])if(soft[key])score+=candidate.themes.includes(theme)?Math.min(6,soft[key]*3):-2;
   return Math.max(0,Math.min(100,Math.round(score)));
 }
 const explanation=(candidate,preferences,context,verification,popularity)=>{
@@ -86,9 +98,12 @@ const explanation=(candidate,preferences,context,verification,popularity)=>{
 };
 export const requiresDestinationDiscovery=preferences=>preferences?.destinationState==='discovery_required'||!preferences?.destination;
 export async function discoverDestinations(preferences,{mode='demo',now=new Date(),language='en',discoveryService=new FallbackDestinationDiscoveryService(),popularityProvider=new GeneralPopularityProvider(),flightProvider}={}){
+  preferences=createTripRequest({...preferences,destination:null,notes:preferences.notes||preferences.preferences?.join(' · ')||''});
+  preferences={...preferences,durationDays:preferences.durationDays||null};
+  if(!preferences.durationDays)preferences.durationDays=preferences.departureWindowText&&/周末|weekend/i.test(preferences.departureWindowText)?2:5;
   const context=createTemporalContext(preferences,{now,language}),windows=planRepresentativeDateWindows(context,preferences.durationDays,{limit:2});
   const discovery=await discoveryService.discover(preferences,context),allCandidates=safeCandidates(discovery.candidates),geographyPreference=preferences.geographyPreference||(preferences.domesticAllowed===false?'international':preferences.internationalAllowed===false?'domestic':'all');
-  const candidates=allCandidates.filter(candidate=>{const domestic=candidate.countryOrRegion==='China'||candidate.countryOrRegion==='Mainland China';return candidate.city.toLowerCase()!==String(preferences.origin||'').toLowerCase()&&(geographyPreference==='all'||(geographyPreference==='domestic')===domestic);}),provider=flightProvider||createTravelProviders(mode).flights;
-  const ranked=await Promise.all(candidates.map(async candidate=>{const verification=await verifyFlights(candidate,preferences,windows,provider,mode),popularity=popularityProvider.getSignal(candidate),score=scoreCandidate(candidate,preferences,context,verification,popularity);return {...candidate,verification,transport:transportAvailability(verification),popularity,score,fitLabel:score>=75?'strong_fit':score>=55?'good_fit':'possible_fit',reasons:explanation(candidate,preferences,context,verification,popularity)};}));
+  const candidates=allCandidates.filter(candidate=>{const domestic=candidate.countryOrRegion==='China'||candidate.countryOrRegion==='Mainland China',hard=preferences.constraints?.hard||{};return candidate.city.toLowerCase()!==String(preferences.origin||'').toLowerCase()&&!isExcludedDestination(hard,candidate.city,candidate.countryOrRegion)&&(hard.geography==null||(hard.geography==='domestic')===domestic)&&(geographyPreference==='all'||(geographyPreference==='domestic')===domestic);}),provider=flightProvider||createTravelProviders(mode).flights;
+  const ranked=await Promise.all(candidates.map(async candidate=>{const verification=await verifyFlights(candidate,preferences,windows,provider,mode),popularity=popularityProvider.getSignal(candidate),score=scoreCandidate(candidate,preferences,context,verification,popularity);return {...candidate,identity:destinationIdentity(candidate),verification,transport:transportAvailability(verification),popularity,score,fitLabel:score>=75?'strong_fit':score>=55?'good_fit':'possible_fit',reasons:explanation(candidate,preferences,context,verification,popularity)};}));
   ranked.sort((a,b)=>b.score-a.score||a.city.localeCompare(b.city));return {...discovery,context,dateWindows:windows,geographyPreference,candidates:ranked};
 }

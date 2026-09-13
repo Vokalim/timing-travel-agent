@@ -46,15 +46,15 @@ test('provided destination keeps the existing direct destination workflow',async
   const direct=await searchTravel({origin:'Shanghai',destination:'Tokyo',start:'2026-11-02',end:'2026-11-02',nights:5,flightBudget:4900,hotelBudget:1260,rating:4.5,notes:''});assert.equal(direct.trip.destination,'Tokyo');
 });
 
-test('missing date uses current time only as soft context and fabricates no date windows',()=>{
-  const context=createTemporalContext({...preferences,departureWindowText:null},{now});assert.equal(context.basis,'current_date_soft_context');assert.deepEqual(planRepresentativeDateWindows(context,5),[]);
+test('missing date uses current time as soft context and labels provisional exploration windows',()=>{
+  const context=createTemporalContext({...preferences,departureWindowText:null},{now});assert.equal(context.basis,'current_date_soft_context');assert.ok(planRepresentativeDateWindows(context,5).every(window=>window.source==='system_generated_exploration_window'&&!window.userProvided));
 });
 
-test('Spring Festival without dates remains holiday context and creates no January flight dates',()=>{
+test('Spring Festival remains broad while generating labeled nearby exploration dates',()=>{
   const context=createTemporalContext({...preferences,departureWindowText:'春节'},{now});
   assert.equal(context.holiday,'spring_festival');
   assert.equal(context.basis,'user_requested_holiday');
-  assert.deepEqual(planRepresentativeDateWindows(context,5),[]);
+  assert.ok(planRepresentativeDateWindows(context,5).every(window=>window.source==='system_generated_exploration_window'&&window.basis==='user_requested_holiday'&&!window.userProvided));
 });
 
 test('broad month preserves the requested period and labels representative windows as generated',()=>{

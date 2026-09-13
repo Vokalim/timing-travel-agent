@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {DemoPreferenceParser, PreferenceParser} from '../dist/lib/preference-parser.js';
 const parser = new DemoPreferenceParser();
-test('example fills known fields, requires year and rating, and flags unsupported overnight preference', async () => {
+test('example fills known fields and retains overnight constraint for review', async () => {
   const draft = await parser.parse('I want to travel from Shanghai to Tokyo for 5 nights sometime between November 2 and November 15. My round-trip flight budget is ¥2100 and hotel budget is ¥700 per night. I prefer highly rated hotels and want to avoid overnight flights.');
   assert.ok(parser instanceof PreferenceParser);
-  assert.deepEqual(draft.fields,{currency:'CNY',travelIntents:[],origin:'Shanghai',destination:'Tokyo',nights:5,flightBudget:2100,hotelBudget:700,notes:''});
+  assert.equal(draft.fields.origin,'Shanghai');assert.equal(draft.fields.destination,'Tokyo');assert.equal(draft.fields.nights,5);assert.equal(draft.fields.flightBudget,2100);assert.equal(draft.fields.hotelBudget,700);assert.match(draft.fields.notes,/avoid overnight flights/);
   assert.deepEqual(draft.needsConfirmation,['start','end','rating']);
   assert.ok(draft.warnings.some(w=>w.includes('no year')));
-  assert.ok(draft.warnings.some(w=>w.includes('not supported')));
+  assert.ok(!draft.warnings.some(w=>w.includes('not supported')));
 });
 test('explicit year and numeric rating populate a complete draft', async () => {
   const draft = await parser.parse('From Shanghai to Tokyo for 5 nights between November 2 and November 15, 2026. Round-trip flight budget ¥2100 and hotel budget ¥700 per night. Minimum guest rating 4.5 out of 5. I prefer comfort.');

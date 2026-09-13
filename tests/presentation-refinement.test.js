@@ -26,6 +26,7 @@ test('flight provider receives canonical city even when the UI uses Chinese labe
  const preferences={origin:'Shanghai',destination:null,destinationState:'discovery_required',departureWindowText:'12月',durationDays:5,travelIntents:['food']};
  const result=await discoverDestinations(preferences,{now,language:'zh',discoveryService:{discover:async()=>({source:'fixture',candidates:[candidate]})},flightProvider:{search:async trip=>{received.push(trip.destination);return [];}}});
  assert.equal(presentDestination(result.candidates[0],'zh').city,'东京');
+ assert.deepEqual([result.candidates[0].identity.key,result.candidates[0].identity.canonicalCity,result.candidates[0].iataOrMetroCode],['tokyo','Tokyo','TYO']);
  assert.ok(received.length>0&&received.every(name=>name==='Tokyo'));
 });
 
@@ -73,8 +74,10 @@ test('requested month outranks current December and holiday signals follow the t
  const spring=new InspirationService({seed:1}).getEligiblePool(options('2026年2月'));
  assert.ok(spring.some(idea=>idea.key==='spring_festival'));
  assert.equal(createTemporalContext({departureWindowText:'2026年2月'},{now}).year,2026);
+ assert.equal(createTemporalContext({departureWindowText:'2027-07-01'},{now}).month,7);
  const noDate=new InspirationService({seed:1}).getEligiblePool({text:'',now:new Date('2026-10-03T00:00:00Z')});
  assert.ok(noDate.some(idea=>idea.key==='national'));
+ assert.ok(new InspirationService({seed:1}).getEligiblePool(options('元宵想出去玩')).some(idea=>idea.key==='lantern_festival'));
 });
 
 test('refresh uses a seeded local pool, changes the set, and avoids immediate repetition',async()=>{

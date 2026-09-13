@@ -55,4 +55,6 @@
 .clarification-options .skip-choice{background:#224936;color:white}
 .clarification>p{font-size:12px;color:#879486}
 .agent-status .pulse-mark{border-radius:50%;font-size:19px}
+#planning-guidance{font-size:12px;color:#61776a;margin:14px 0 0}
+#planning-guidance:empty{display:none}
 @media(max-width:760px){.ask-state{min-height:0;padding:72px 18px 25px}.ask-box{padding:20px}.discovery-feature{grid-template-columns:1fr}.feature-art{min-height:220px}.feature-art .secondary-image{width:34%;height:45%}.feature-copy{padding:30px}.idea-list{grid-template-columns:1fr;gap:4px}.site-header{padding-left:18px;padding-right:18px}.source-control #source-indicator{display:none}}

@@ -5,7 +5,7 @@ export class PreferenceParserError extends Error {
   constructor(code,message) { super(message); this.name='PreferenceParserError'; this.code=code; }
 }
 
-function toDraft(payload) {
+function toDraft(payload,originalText='') {
   const p=payload?.interpretation;
   if (!p || !['provided','discovery_required'].includes(p.destinationState) || !Array.isArray(p.travelIntents) || !Array.isArray(payload.needsConfirmation) || !Array.isArray(payload.warnings))
     throw new PreferenceParserError('PREFERENCE_OUTPUT_INVALID','The AI preference response was incomplete or invalid.');
@@ -16,7 +16,7 @@ function toDraft(payload) {
   else if (p.domesticAllowed===true) notes.push('Domestic destinations allowed');
   else if (p.internationalAllowed===true) notes.push('International destinations allowed');
   if (Array.isArray(p.preferences)) notes.push(...p.preferences);
-  const fields={currency:'CNY',travelIntents:normalizeTravelIntents(p.travelIntents),notes:notes.join('. ')};
+  const fields={currency:'CNY',travelIntents:normalizeTravelIntents(p.travelIntents),notes:[...notes,originalText].filter(Boolean).join('. ')};
   const map={origin:'origin',destination:'destination',earliestDeparture:'start',latestDeparture:'end',durationDays:'nights',flightBudgetCny:'flightBudget',hotelBudgetPerNightCny:'hotelBudget',minimumHotelRating:'rating'};
   for (const [source,target] of Object.entries(map)) if (p[source]!=null) fields[target]=p[source];
   return {fields,needsConfirmation:Object.keys(tripFields).filter(key=>fields[key]===undefined),warnings:payload.warnings,
@@ -36,7 +36,7 @@ export class LLMPreferenceParser extends PreferenceParser {
       const response=await this.fetchImpl(this.endpoint,{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',signal:controller.signal,body:JSON.stringify({text})});
       const payload=await response.json().catch(()=>null);
       if (!response.ok) throw new PreferenceParserError(payload?.error?.code || 'PREFERENCE_PARSER_UNAVAILABLE',payload?.error?.message || 'AI trip interpretation is unavailable.');
-      return toDraft(payload);
+      return toDraft(payload,text);
     } catch(error) {
       if (error instanceof PreferenceParserError) throw error;
       throw new PreferenceParserError(controller.signal.aborted?'PREFERENCE_PARSER_TIMEOUT':'PREFERENCE_PARSER_UNAVAILABLE',controller.signal.aborted?'AI trip interpretation timed out.':'AI trip interpretation is unavailable.');

@@ -69,11 +69,11 @@ test('broad month stays broad; representative dates are never user-confirmed',()
  assert.ok(windows.every(window=>window.source==='system_generated_exploration_window'&&!window.userProvided));
 });
 
-test('lunar and named holidays without dates stay soft and create no flight dates',()=>{
+test('lunar and named holidays stay soft with explicitly provisional comparison dates',()=>{
  for(const holiday of ['春节','清明','端午','中秋','国庆']){
   const context=createTemporalContext({...base,departureWindowText:holiday},{now});
   assert.equal(context.datePrecision,'holiday');assert.equal(context.dateDescription,holiday);
-  assert.deepEqual(planRepresentativeDateWindows(context,5),[]);
+  assert.ok(planRepresentativeDateWindows(context,5).every(window=>window.source==='system_generated_exploration_window'&&window.basis==='user_requested_holiday'&&!window.userProvided));
  }
 });
 

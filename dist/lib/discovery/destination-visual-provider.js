@@ -1,6 +1,6 @@
 import {destinationIdentity} from './destination-identity.js';
 
-const asset=(name,description)=>({src:`/assets/${name}-editorial.png`,description,kind:'illustration'});
+const asset=(name,description)=>({src:`/assets/${name}-editorial.jpg`,description,kind:'illustration'});
 const cityVisuals={
  tokyo:{heroImages:[asset('tokyo','Illustrative Tokyo street at dusk')],scenicImages:[asset('east-asian-urban','Illustrative East Asian urban travel mood')],fallbackCategory:'urban'},
  chengdu:{heroImages:[asset('chengdu','Illustrative Chengdu teahouse courtyard')],scenicImages:[asset('east-asian-historic','Illustrative East Asian historic travel mood')],fallbackCategory:'urban'}

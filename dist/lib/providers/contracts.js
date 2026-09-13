@@ -51,7 +51,9 @@ export function validateFlightQuotes(value) {
 export function validateHotelQuotes(value) {
   return quotes(value).map(q => {
     if (!text(q.name) || !price(q.nightly) || typeof q.rating !== 'number' || !Number.isFinite(q.rating) || q.rating < 1 || q.rating > 5) throw invalid();
-    return {id:q.id, name:q.name, nightly:q.nightly, rating:q.rating, currency:'CNY'};
+    return {id:q.id, name:q.name, nightly:q.nightly, rating:q.rating, currency:'CNY',
+      centralLocation:q.centralLocation===true,convenientTransport:q.convenientTransport===true,
+      quietArea:q.quietArea===true,localFoodAccess:q.localFoodAccess===true};
   });
 }
 export function validateLiveEnvelope(value, kind) {

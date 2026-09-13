@@ -64,7 +64,7 @@ export function normalizePreferenceOutput(value,input) {
     (Date.parse(latestDeparture)-Date.parse(earliestDeparture))/86400000<=60;
   const departureWindowText=clean(value.departureWindowText);
   if (!datesValid && (value.earliestDeparture || value.latestDeparture)) warnings.push('The exact travel dates need confirmation and were not guessed.');
-  if (departureWindowText && !datesValid) warnings.push(`Broad travel window captured: ${departureWindowText}. Confirm exact dates before searching.`);
+  if (departureWindowText && !datesValid) warnings.push(`Broad travel window captured: ${departureWindowText}. Any comparison dates are provisional and can be edited later.`);
   const travelIntents=[...new Set(Array.isArray(value.travelIntents)?value.travelIntents.filter(intent=>TRAVEL_INTENTS.includes(intent)):[])];
   const interpretation={
     origin,destination,destinationState:destination?'provided':'discovery_required',

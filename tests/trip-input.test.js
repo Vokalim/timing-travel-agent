@@ -48,3 +48,21 @@ test('real index Explore button uses the app entry and successful preference API
   assert.deepEqual(receivedDraft.fields.travelIntents,['beach']);
   assert.doesNotMatch(review.children[0].textContent,/fallback/i);
 });
+
+test('optional form fields are not required and reviewed preferences have a concise visible summary',async()=>{
+ const html=await readFile(new URL('../dist/index.html',import.meta.url),'utf8');
+ const form=html.match(/<form id="trip-form">([\s\S]*?)<\/form>/)?.[1];assert.ok(form);
+ for(const name of ['destination','start','end','nights','rating','flightBudget','hotelBudget']){
+  const tag=form.match(new RegExp(`<input\\b[^>]*name="${name}"[^>]*>`))?.[0];assert.ok(tag,name);assert.doesNotMatch(tag,/\srequired\b/,name);
+ }
+ assert.match(form,/没想好也没关系/);assert.match(form,/继续规划/);
+ const fields=Object.fromEntries(['origin','destination','start','end','nights','flightBudget','hotelBudget','rating','notes'].map(name=>[name,new Element({name})]));
+ const formElement=new Element();formElement.elements={namedItem:name=>fields[name]};
+ const input=new Element({value:'上海出发，最好直飞，不要红眼，节奏慢一点'}),button=new Element(),review=new Element(),status=new Element();
+ const elements={'#trip-description':input,'#interpret-trip':button,'#trip-review':review,'#agent-status':status};
+ const previous=globalThis.document;
+ globalThis.document={documentElement:{lang:'zh-CN'},querySelector:selector=>elements[selector],createElement:()=>new Element(),addEventListener(){}};
+ try{setupTripInput(formElement,()=>{},{parse:async()=>({fields:{origin:'Shanghai',travelIntents:[],notes:'最好直飞，不要红眼，节奏慢一点'},needsConfirmation:['destination','start','end','nights','rating','flightBudget','hotelBudget'],interpretation:{destinationState:'discovery_required'},parserStatus:'ai'})});await button.click();}
+ finally{globalThis.document=previous;}
+ assert.ok(review.children.some(child=>/偏好：直飞优先 · 不要红眼 · 慢节奏/.test(child.textContent)),JSON.stringify(review.children.map(child=>child.textContent))+' / '+review.textContent);
+});

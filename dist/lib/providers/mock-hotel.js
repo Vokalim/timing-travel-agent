@@ -6,6 +6,6 @@ export class MockHotelProvider {
     trip = createTripRequest(trip);
     requireDestination(trip);
     const n=hash(trip.destination.toLowerCase()+date);
-    return validateHotelQuotes([{id:'garden',name:'Garden House',nightly:595+(n%65)*7,rating:4.1},{id:'atelier',name:'Atelier Hotel',nightly:945+(n%80)*7,rating:4.6},{id:'grand',name:'The Grand',nightly:1610+(n%100)*7,rating:4.9}]);
+    return validateHotelQuotes([{id:'garden',name:'Garden House',nightly:595+(n%65)*7,rating:4.1,quietArea:true},{id:'atelier',name:'Atelier Hotel',nightly:945+(n%80)*7,rating:4.6,centralLocation:true,convenientTransport:true,localFoodAccess:true},{id:'grand',name:'The Grand',nightly:1610+(n%100)*7,rating:4.9,centralLocation:true,quietArea:true}]);
   }
 }

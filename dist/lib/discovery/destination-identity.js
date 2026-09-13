@@ -27,8 +27,7 @@ export function destinationIdentity(value){
 export const displayCity=(value,language='en')=>destinationIdentity(value).names[language==='zh'?'zh':'en'];
 export const displayCountry=(value,language='en')=>{
  const identity=destinationIdentity(value);
- const explicit=typeof value==='object'?value?.countryOrRegion:null;
- return language==='zh'?(countryZh.get(String(explicit||'').toLowerCase())||identity.countryNames.zh):(explicit||identity.countryNames.en);
+ return identity.countryNames[language==='zh'?'zh':'en'];
 };
 export const presentDestination=(candidate,language='en')=>({
  key:destinationIdentity(candidate).key,canonicalCity:candidate.city,code:candidate.iataOrMetroCode,
