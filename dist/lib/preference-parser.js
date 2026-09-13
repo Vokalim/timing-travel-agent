@@ -44,11 +44,11 @@ export class DemoPreferenceParser extends PreferenceParser {
       if (!/^(?:a |an |the )?(?:beach|somewhere|someplace|warm place|place to hike|christmas destination)$/i.test(proposed)) fields.destination=proposed;
     }
     if (!fields.origin) {
-      const found=[['上海','Shanghai'],['北京','Beijing'],['广州','Guangzhou'],['深圳','Shenzhen'],['成都','Chengdu'],['香港','Hong Kong']].find(([name])=>text.includes(name));
+      const found=[['上海','Shanghai'],['北京','Beijing'],['广州','Guangzhou'],['深圳','Shenzhen'],['成都','Chengdu'],['重庆','Chongqing'],['长沙','Changsha'],['厦门','Xiamen'],['三亚','Sanya'],['昆明','Kunming'],['大理','Dali'],['丽江','Lijiang'],['桂林','Guilin'],['西安',"Xi'an"],['杭州','Hangzhou'],['南京','Nanjing'],['青岛','Qingdao'],['哈尔滨','Harbin'],['香港','Hong Kong']].find(([name])=>text.includes(name));
       if(found)fields.origin=found[1];
     }
     if (!fields.destination) {
-      const found=[['东京','Tokyo'],['東京','Tokyo'],['大阪','Osaka'],['首尔','Seoul'],['首爾','Seoul'],['新加坡','Singapore'],['曼谷','Bangkok'],['伦敦','London'],['巴黎','Paris']].find(([name])=>new RegExp(`(?:去|到)${name}`).test(text));
+      const found=[['东京','Tokyo'],['東京','Tokyo'],['大阪','Osaka'],['首尔','Seoul'],['首爾','Seoul'],['新加坡','Singapore'],['曼谷','Bangkok'],['伦敦','London'],['巴黎','Paris'],['北京','Beijing'],['广州','Guangzhou'],['深圳','Shenzhen'],['成都','Chengdu'],['重庆','Chongqing'],['长沙','Changsha'],['厦门','Xiamen'],['三亚','Sanya'],['昆明','Kunming'],['大理','Dali'],['丽江','Lijiang'],['桂林','Guilin'],['西安',"Xi'an"],['杭州','Hangzhou'],['南京','Nanjing'],['青岛','Qingdao'],['哈尔滨','Harbin']].find(([name])=>new RegExp(`(?:去|到)${name}`).test(text));
       if(found)fields.destination=found[1];
     }
     fields.nights = unique(text,/\b(\d+)\s+nights?\b/gi, Number);
@@ -94,7 +94,8 @@ export class DemoPreferenceParser extends PreferenceParser {
     fields.notes = notes.join('. ');
     for (const key of Object.keys(fields)) if (fields[key] === undefined) delete fields[key];
     const broadMonth=text.match(/(?:^|\D)(1[0-2]|0?[1-9])\s*月/);if(!dateHint&&broadMonth)dateHint=broadMonth[0].trim();
-    const interpretation={origin:fields.origin||null,destination:fields.destination||null,destinationState:fields.destination?'provided':'discovery_required',earliestDeparture:fields.start||null,latestDeparture:fields.end||null,departureWindowText:dateHint||null,durationDays:fields.nights||null,totalTripBudgetCny:fields.totalTripBudgetCny||null,flightBudgetCny:fields.flightBudget||null,hotelBudgetPerNightCny:fields.hotelBudget||null,minimumHotelRating:fields.rating||null,avoidOvernightFlights:/不要红眼|避免红眼|avoid (?:overnight|red[- ]?eye)/i.test(text)?true:null,travelIntents:fields.travelIntents,domesticAllowed:null,internationalAllowed:null,pace:null,preferences:[]};
+    const domesticOnly=/只(?:想|去|看)?国内|仅限国内|domestic only/i.test(text),internationalOnly=/只(?:想|去|看)?出境|只(?:想|去|看)?国外|仅限出境|international only/i.test(text);
+    const interpretation={origin:fields.origin||null,destination:fields.destination||null,destinationState:fields.destination?'provided':'discovery_required',earliestDeparture:fields.start||null,latestDeparture:fields.end||null,departureWindowText:dateHint||null,durationDays:fields.nights||null,totalTripBudgetCny:fields.totalTripBudgetCny||null,flightBudgetCny:fields.flightBudget||null,hotelBudgetPerNightCny:fields.hotelBudget||null,minimumHotelRating:fields.rating||null,avoidOvernightFlights:/不要红眼|避免红眼|avoid (?:overnight|red[- ]?eye)/i.test(text)?true:null,travelIntents:fields.travelIntents,domesticAllowed:internationalOnly?false:domesticOnly?true:null,internationalAllowed:domesticOnly?false:internationalOnly?true:null,pace:null,preferences:[]};
     return {fields, needsConfirmation:Object.keys(tripFields).filter(key=>fields[key]===undefined), warnings, dateHint,interpretation,
       source:'demo',parserStatus:'demo'};
   }

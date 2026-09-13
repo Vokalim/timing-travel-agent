@@ -1,9 +1,9 @@
 import {DemoPreferenceParser,tripFields} from './lib/preference-parser.js';
 import {FallbackPreferenceParser,LLMPreferenceParser} from './lib/llm-preference-parser.js';
 
-const zhLabels={origin:'出发地',destination:'目的地',start:'最早出发日期',end:'最晚出发日期',nights:'旅行时长',flightBudget:'往返机票预算',hotelBudget:'每晚酒店预算',rating:'酒店最低评分'};
 const isZh=()=>document.documentElement.lang.startsWith('zh');
 const t=(zh,en)=>isZh()?zh:en;
+const intentLabels={beach:['海边','Beach'],festive:['节日氛围','Festive'],nature:['自然','Nature'],food:['美食','Food'],relaxation:['放松','Relax'],snow_winter:['看雪','Snow'],hiking:['徒步','Hiking'],culture:['文化','Culture'],shopping:['购物','Shopping'],family:['亲子','Family'],romantic:['浪漫','Romantic']};
 
 // UI integration only: interpreting fills a draft and never changes search logic.
 export function setupTripInput(form,onDraftChange,parser=new FallbackPreferenceParser(new LLMPreferenceParser(),new DemoPreferenceParser())){
@@ -12,13 +12,12 @@ export function setupTripInput(form,onDraftChange,parser=new FallbackPreferenceP
  let lastDraft;
  const renderReview=draft=>{
   review.hidden=false;review.replaceChildren();
-  const summary=document.createElement('p');summary.textContent=draft.parserStatus==='ai'?t(`AI 已理解你的描述${draft.model?` · ${draft.model}`:''}。请确认或修改以下条件。`,`AI interpretation${draft.model?` · ${draft.model}`:''}. Review or edit the details below.`):t('AI 暂时不可用。以下内容来自本地解析，请逐项确认。','AI interpretation was unavailable. This draft came from the local fallback parser; review every field.');review.append(summary);
-  const list=document.createElement('ul');
-  for(const [key,enLabel] of Object.entries(tripFields)){const item=document.createElement('li');item.dataset.tripField=key;const value=draft.fields[key];item.textContent=`${isZh()?zhLabels[key]:enLabel}：${value??t('需要确认','Needs confirmation')}`;list.append(item);}review.append(list);
-  const themes=document.createElement('p');themes.textContent=`${t('旅行主题','Travel themes')}：${draft.fields.travelIntents.length?draft.fields.travelIntents.join(', '):t('未识别','none recognized')}。${t('主题暂不影响当前评分。','Themes do not affect current scoring yet.')}`;review.append(themes);
-  if(draft.interpretation){const state=document.createElement('p');state.textContent=`${t('目的地状态','Destination state')}：${draft.interpretation.destinationState} · ${t('红眼航班','Overnight flights')}：${draft.interpretation.avoidOvernightFlights===true?t('避开','avoid'):draft.interpretation.avoidOvernightFlights===false?t('可以','allowed'):t('未说明','not stated')}`;review.append(state);}
-  if(draft.interpretation?.totalTripBudgetCny){const budget=document.createElement('p');budget.textContent=`${t('旅行总预算','Total trip budget')}：¥${Number(draft.interpretation.totalTripBudgetCny).toLocaleString()} · ${t('未自动拆分为机票和酒店预算','Not automatically split between flights and hotels')}`;review.append(budget);}
-  for(const message of [draft.dateHint&&`${t('日期描述','Date wording')}：${draft.dateHint}`,...draft.warnings,draft.fields.notes&&`${t('已记录偏好','Captured preferences')}：${draft.fields.notes}`,draft.parserStatus==='fallback'&&`${draft.fallbackReason} ${t('此结果明确标记为本地解析。','This result is explicitly labeled as local fallback.')}`]){if(!message)continue;const p=document.createElement('p');p.textContent=message;review.append(p);}
+  const fields=draft.fields,interpretation=draft.interpretation||{};
+  const title=document.createElement('strong');title.textContent=[fields.origin?`${fields.origin}${fields.destination?' → '+fields.destination:t('出发',' departure')}`:null,!fields.destination&&t('目的地交给途米','Destination by Timing'),draft.dateHint||interpretation.departureWindowText||fields.start,fields.nights&&t(`${fields.nights} 天`,`${fields.nights} days`),(fields.totalTripBudgetCny||interpretation.totalTripBudgetCny||fields.flightBudget)&&`¥${Number(fields.totalTripBudgetCny||interpretation.totalTripBudgetCny||fields.flightBudget).toLocaleString()}`].filter(Boolean).join(' · ');review.append(title);
+  const tags=[...(fields.travelIntents||[]).slice(0,3).map(intent=>intentLabels[intent]?.[isZh()?0:1]||intent),interpretation.avoidOvernightFlights===true?t('避开红眼航班','No overnight flights'):null];
+  if(tags.filter(Boolean).length){const small=document.createElement('p');small.textContent=tags.filter(Boolean).join(' · ');review.append(small);}
+  if(draft.parserStatus==='fallback'||draft.parserStatus==='demo'){const warning=document.createElement('small');warning.textContent=t('AI 暂不可用 · 已用本地解析，请核对条件','AI unavailable · Local fallback used; please review');review.append(warning);}
+  const edit=document.createElement('button');edit.type='button';edit.textContent=t('修改条件','Edit conditions');edit.addEventListener('click',()=>{const details=document.querySelector('#structured-details');if(details){details.open=true;details.scrollIntoView?.({behavior:'smooth',block:'start'});}});review.append(edit);
  };
  button.addEventListener('click',async()=>{
   console.info('[Timing] Explore click received');
@@ -28,6 +27,6 @@ export function setupTripInput(form,onDraftChange,parser=new FallbackPreferenceP
   catch{status.hidden=true;review.hidden=false;review.textContent=t('无法理解这段描述，请使用旅行条件表单。','Could not interpret this description. Please use the trip details form.');}
   finally{button.disabled=false;}
  });
- form.addEventListener('input',event=>{const key=event.target.name;if(!Object.hasOwn(tripFields,key)||review.hidden)return;const field=event.target;field.classList.toggle('needs-confirmation',!field.value);const item=review.querySelector(`[data-trip-field="${key}"]`);if(item)item.textContent=`${isZh()?zhLabels[key]:tripFields[key]}：${field.value||t('需要确认','Needs confirmation')}`;});
+ form.addEventListener('input',event=>{const key=event.target.name;if(!Object.hasOwn(tripFields,key)||review.hidden)return;const field=event.target;field.classList.toggle('needs-confirmation',!field.value);if(lastDraft){lastDraft.fields[key]=field.value||undefined;renderReview(lastDraft);}});
  document.addEventListener('timing:language',()=>{if(lastDraft)renderReview(lastDraft);});
 }

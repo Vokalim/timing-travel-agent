@@ -3,16 +3,18 @@ import {setupTripInput} from './trip-input.js';
 import {DemoPreferenceParser} from './lib/preference-parser.js';
 import {FallbackPreferenceParser,LLMPreferenceParser} from './lib/llm-preference-parser.js';
 import {discoverDestinations} from './lib/discovery/destination-discovery.js';
+import {InspirationService} from './lib/discovery/inspiration-service.js';
+import {nextClarification} from './lib/discovery/clarification.js';
 
 const form=document.querySelector('#trip-form'),output=document.querySelector('#results');
 const modeControl=document.querySelector('#data-mode'),indicator=document.querySelector('#source-indicator');
 const notice=document.querySelector('#source-notice'),resultsState=document.querySelector('#results-state');
 const agentStatus=document.querySelector('#agent-status'),structured=document.querySelector('#structured-details');
-let result,discoveryResult,selected,language='zh',requestId=0,editVersion=0;
+let result,discoveryResult,clarificationDraft,selected,language='zh',requestId=0,editVersion=0,discoveryFilter='all';
 
 const copy={
- zh:{kicker:'你的旅行，从一个念头开始',heroTitle:'找个时机，出发吧。',heroSubtitle:'告诉途米你想去哪，或者想要怎样的旅行。',askLabel:'这次想怎么走？',aiNote:'AI 理解需求 · 结果可修改',explore:'开始探索',inspireLabel:'或者，从一种心情开始',chipChristmas:'过圣诞',chipBeach:'去看海',chipHiking:'去爬山',chipFood:'吃点好的',chipRelax:'放空几天',chipWeekend:'周末短途',workingTitle:'途米正在为你找……',working1:'理解旅行偏好',working2:'整理时间与预算',working3:'寻找适合的旅行方案',working4:'比较交通与价格',editConditions:'查看 / 修改旅行条件',tripDetails:'旅行条件',confirmHint:'搜索前请确认',from:'出发地',to:'目的地',earliest:'最早出发',latest:'最晚出发',duration:'旅行时长（晚）',rating:'酒店最低评分',flightBudget:'往返机票预算',hotelBudget:'每晚酒店预算',preferences:'其他偏好（可选）',searchDates:'比较这些日期',editRequest:'修改需求',stale:'旅行条件已修改，请重新比较。',howDecision:'途米如何做判断',methodPreferences:'<strong>先理解偏好。</strong> AI 只负责整理可复核的旅行条件；不可用时会明确标记本地解析。',methodMath:'<strong>计算保持确定。</strong> 价格、预算、评分和 BOOK / WAIT / CHANGE DATE 都由固定规则计算。',methodSource:'<strong>来源保持透明。</strong> Demo 为模拟数据；Live 使用 Duffel 航班，酒店仍为 Demo。',footer:'在出发之前，先找到对的时机。'},
- en:{kicker:'YOUR TRIP STARTS WITH AN IDEA',heroTitle:'Find your moment to go.',heroSubtitle:'Tell Timing where you want to go — or what kind of trip you want.',askLabel:'What kind of trip are you imagining?',aiNote:'AI interpretation · Fully editable',explore:'Explore',inspireLabel:'Or start with a feeling',chipChristmas:'Christmas',chipBeach:'Beach',chipHiking:'Hiking',chipFood:'Food',chipRelax:'Relax',chipWeekend:'Weekend escape',workingTitle:'Timing is looking for your trip…',working1:'Understanding your preferences',working2:'Organising dates and budget',working3:'Finding suitable options',working4:'Comparing transport and price',editConditions:'View / edit trip details',tripDetails:'Trip details',confirmHint:'Confirm before searching',from:'From',to:'To',earliest:'Earliest departure',latest:'Latest departure',duration:'Trip duration (nights)',rating:'Minimum hotel rating',flightBudget:'Round-trip flight budget',hotelBudget:'Hotel budget per night',preferences:'Other preferences (optional)',searchDates:'Compare these dates',editRequest:'Edit request',stale:'Your trip details changed. Compare again.',howDecision:'How Timing makes a decision',methodPreferences:'<strong>Preferences first.</strong> AI creates a reviewable trip draft; local fallback is always clearly labeled.',methodMath:'<strong>Deterministic calculations.</strong> Prices, budgets, scores and BOOK / WAIT / CHANGE DATE use fixed rules.',methodSource:'<strong>Transparent sources.</strong> Demo is simulated; Live uses Duffel flights while hotels remain Demo.',footer:'Find the right moment before you go.'}
+ zh:{kicker:'你的旅行，从一个念头开始',heroTitle:'找个时机，出发吧。',heroSubtitle:'告诉途米你想去哪，或者想要怎样的旅行。',askLabel:'这次想怎么走？',aiNote:'目的地未定也没关系',explore:'开始探索',inspireLabel:'这个时节适合',chipChristmas:'过圣诞',chipBeach:'去看海',chipHiking:'去爬山',chipFood:'吃点好的',chipRelax:'放空几天',chipWeekend:'周末短途',workingTitle:'途米正在为你找……',working1:'理解旅行偏好',working2:'整理时间与预算',working3:'寻找适合的旅行方案',working4:'比较交通与价格',editConditions:'查看 / 修改旅行条件',tripDetails:'旅行条件',confirmHint:'搜索前请确认',from:'出发地',to:'目的地',earliest:'最早出发',latest:'最晚出发',duration:'旅行时长（晚）',rating:'酒店最低评分',flightBudget:'往返机票预算',hotelBudget:'每晚酒店预算',preferences:'其他偏好（可选）',searchDates:'比较这些日期',editRequest:'修改需求',stale:'旅行条件已修改，请重新比较。',howDecision:'途米如何做判断',methodPreferences:'<strong>先理解偏好。</strong> AI 只负责整理可复核的旅行条件；不可用时会明确标记本地解析。',methodMath:'<strong>计算保持确定。</strong> 价格、预算、评分和 BOOK / WAIT / CHANGE DATE 都由固定规则计算。',methodSource:'<strong>来源保持透明。</strong> Demo 为模拟数据；Live 使用 Duffel 航班，酒店仍为 Demo。',footer:'在出发之前，先找到对的时机。'},
+ en:{kicker:'YOUR TRIP STARTS WITH AN IDEA',heroTitle:'Find your moment to go.',heroSubtitle:'Tell Timing where you want to go — or what kind of trip you want.',askLabel:'What kind of trip are you imagining?',aiNote:'Not sure where to go? That is fine.',explore:'Explore',inspireLabel:'Good for this season',chipChristmas:'Christmas',chipBeach:'Beach',chipHiking:'Hiking',chipFood:'Food',chipRelax:'Relax',chipWeekend:'Weekend escape',workingTitle:'Timing is looking for your trip…',working1:'Understanding your preferences',working2:'Organising dates and budget',working3:'Finding suitable options',working4:'Comparing transport and price',editConditions:'View / edit trip details',tripDetails:'Trip details',confirmHint:'Confirm before searching',from:'From',to:'To',earliest:'Earliest departure',latest:'Latest departure',duration:'Trip duration (nights)',rating:'Minimum hotel rating',flightBudget:'Round-trip flight budget',hotelBudget:'Hotel budget per night',preferences:'Other preferences (optional)',searchDates:'Compare these dates',editRequest:'Edit request',stale:'Your trip details changed. Compare again.',howDecision:'How Timing makes a decision',methodPreferences:'<strong>Preferences first.</strong> AI creates a reviewable trip draft; local fallback is always clearly labeled.',methodMath:'<strong>Deterministic calculations.</strong> Prices, budgets, scores and BOOK / WAIT / CHANGE DATE use fixed rules.',methodSource:'<strong>Transparent sources.</strong> Demo is simulated; Live uses Duffel flights while hotels remain Demo.',footer:'Find the right moment before you go.'}
 };
 const tr=(zh,en)=>language==='zh'?zh:en;
 const escape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -31,8 +33,16 @@ function applyLanguage(next){
  document.querySelectorAll('[data-i18n]').forEach(el=>{const value=copy[next][el.dataset.i18n];if(value!=null) value.includes('<strong>')?el.innerHTML=value:el.textContent=value;});
  document.querySelectorAll('[data-placeholder-zh]').forEach(el=>el.placeholder=el.dataset[next==='zh'?'placeholderZh':'placeholderEn']);
  indicator.textContent=sourceLabel();
+ renderInspiration();
  document.dispatchEvent(new CustomEvent('timing:language',{detail:{language}}));
- if(result) render();else if(discoveryResult)renderDiscovery(discoveryResult);
+ if(result) render();else if(discoveryResult){document.querySelector('#result-meta').textContent=tr('目的地灵感','DESTINATION IDEAS');renderDiscovery(discoveryResult);}else if(clarificationDraft)showClarification(clarificationDraft);
+}
+const inspirationService=new InspirationService();
+function renderInspiration(){
+ const input=document.querySelector('#trip-description'),container=document.querySelector('.chips');
+ const ideas=inspirationService.getIdeas({text:input.value});
+ container.replaceChildren();
+ for(const idea of ideas){const button=document.createElement('button');button.type='button';button.className='inspire-chip';button.textContent=language==='zh'?idea.zh:idea.en;button.addEventListener('click',()=>{const phrase=language==='zh'?idea.promptZh:idea.promptEn;input.value=input.value.trim()?`${input.value.trim()}${language==='zh'?'，':'. '}${phrase}`:phrase;input.focus();renderInspiration();});container.append(button);}
 }
 
 function reasonsFor(b,t){
@@ -57,25 +67,48 @@ function bindResults(){
  output.querySelector('.view-trip')?.addEventListener('click',()=>{const el=output.querySelector('#trip-detail');el.hidden=false;el.scrollIntoView({behavior:'smooth',block:'start'});});
  output.querySelectorAll('[data-date]').forEach(el=>el.addEventListener('click',()=>{const open=!output.querySelector('#trip-detail')?.hidden;selected=el.dataset.date;render();if(open){const detail=output.querySelector('#trip-detail');detail.hidden=false;}}));
 }
-function showDiscovery(draft){
- resultsState.hidden=false;const themes=draft.fields.travelIntents||[];
- document.querySelector('#result-meta').textContent=tr('下一步 · 目的地探索','NEXT · DESTINATION DISCOVERY');
- output.innerHTML=`<article class="recommendation discovery"><div class="rec-top"><span class="badge">${tr('需要确认','CONFIRM')}</span><span class="rec-label">${tr('诚实的下一步','AN HONEST NEXT STEP')}</span></div><h2 class="rec-route">${tr('目的地由途米推荐','Destination discovery is the next step')}</h2><p>${tr('你描述了旅行感觉，但没有指定真实地点。目的地探索尚未上线，途米不会编造一个城市。请先在旅行条件中确认目的地。','You described the kind of trip you want without naming a real place. Destination discovery is not implemented, so Timing will not invent a city. Confirm a destination in trip details to continue.')}</p>${themes.length?`<div class="fit-reasons"><span>${tr('已理解的旅行主题','CAPTURED THEMES')}</span><ul>${themes.map(x=>`<li>${escape(x)}</li>`).join('')}</ul></div>`:''}</article>`;
- structured.open=true;resultsState.scrollIntoView({behavior:'smooth',block:'start'});
+function showClarification(draft){
+ const question=nextClarification(draft.interpretation);
+ if(!question){runDiscovery(draft,{skip:true});return;}
+ clarificationDraft=draft;
+ agentStatus.hidden=true;resultsState.hidden=false;
+ document.querySelector('#result-meta').textContent=tr('再了解一点','ONE QUICK QUESTION');
+ output.innerHTML=`<section class="clarification"><span class="eyebrow">${tr('旅行灵感','TRIP INSPIRATION')}</span><h2>${escape(language==='zh'?question.questionZh:question.questionEn)}</h2><div class="clarification-options">${question.options.map((option,index)=>`<button type="button" data-choice="${index}">${escape(language==='zh'?option.zh:option.en)}</button>`).join('')}<button type="button" data-choice="skip" class="skip-choice">${tr('先看推荐','Show ideas first')} →</button></div><p>${tr('只问这一个问题，也可以直接看灵感。','Just one question, or browse ideas right away.')}</p></section>`;
+ output.querySelectorAll('[data-choice]').forEach(button=>button.addEventListener('click',()=>{
+  const value=button.dataset.choice;
+  if(value!=='skip'){
+   const selected=question.options[Number(value)].value;
+   if(question.kind==='theme')draft.interpretation.travelIntents=[...new Set([...(draft.interpretation.travelIntents||[]),selected])];
+   if(question.kind==='time'&&selected!=='flexible')draft.interpretation.departureWindowText=selected;
+   if(question.kind==='budget')draft.interpretation.totalTripBudgetCny=selected;
+  }
+  runDiscovery(draft,{skip:true});
+ }));
+ resultsState.scrollIntoView({behavior:'smooth',block:'start'});
 }
-function discoveryFit(candidate){return candidate.fitLabel==='strong_fit'?tr('很适合这次旅行','Strong fit for this trip'):candidate.fitLabel==='good_fit'?tr('适合这次旅行','Good fit for this trip'):tr('值得考虑','Worth considering');}
-function flightLine(candidate){const verification=candidate.verification;if(verification.status==='verified'){const q=verification.quote;return `${verification.source==='live'?tr('Duffel 已验证','Duffel verified'):tr('Demo 航班','Demo flight')} · ${money(q.price)} · ${q.stops===0?tr('直飞','Nonstop'):tr(`${q.stops} 次中转`,`${q.stops} stop${q.stops===1?'':'s'}`)}${q.airline?` · ${escape(q.airline)}`:''}`;}return verification.status==='not_checked'?tr('日期不足，尚未检查航班','Flight not checked because dates are insufficient'):tr('航班验证暂不可用','Flight verification unavailable');}
+function flightLine(candidate){const verification=candidate.verification;if(verification.status==='verified'){const q=verification.quote;return `${verification.source==='live'?tr('Duffel 航班已验证','Duffel flight verified'):tr('Demo 航班','Demo flight')} · ${money(q.price)}${q.stops===0?` · ${tr('直飞','Nonstop')}`:''}`;}return verification.status==='not_checked'?tr('航班待验证','Flight not checked'):tr('航班暂不可用','Flight unavailable');}
 function renderDiscovery(data,expanded=false){
- const [best,...rest]=data.candidates;if(!best){output.innerHTML=`<p class="empty">${tr('暂时没有可用的目的地建议。','No destination ideas are available yet.')}</p>`;return;}
- const alternatives=rest.slice(0,expanded?rest.length:3),period=data.context.basis==='current_date_soft_context'?tr('当前季节仅作为柔性参考','Current season used only as a soft signal'):data.dateWindows.length?tr('日期为系统生成的探索窗口，并非用户指定日期','Dates are system-generated exploration windows, not user-provided dates'):tr('已保留用户的宽泛时间描述','The broad travel period was preserved');
- output.innerHTML=`<article class="recommendation discovery-result"><div class="rec-top"><span class="badge">DISCOVER</span><span class="rec-label">${tr('途米推荐目的地','TIMING RECOMMENDS')}</span></div><h2 class="rec-route">${escape(best.city)} <small>${escape(best.countryOrRegion)}</small></h2><p class="rec-dates">${discoveryFit(best)} · ${best.score}/100</p><div class="fit-reasons"><span>${tr('为什么适合','WHY IT FITS')}</span><ul>${best.reasons.map(reason=>`<li>✓ ${escape(reason)}</li>`).join('')}</ul></div><p class="flight-verification">${flightLine(best)}</p></article><section class="discovery-alternatives"><div class="detail-heading"><div><h2>${tr('其他灵感','More ideas')}</h2><p>${escape(period)}</p></div></div><div class="idea-list">${alternatives.map(candidate=>`<article><div><strong>${escape(candidate.city)}</strong><span>${escape(candidate.countryOrRegion)}</span></div><b>${candidate.score}/100</b><p>${escape(candidate.reasons[0]||'')}</p><small>${flightLine(candidate)}</small></article>`).join('')}</div>${!expanded&&rest.length>3?`<button type="button" id="show-more-ideas">${tr('换一批 / 查看更多','Show more ideas')}</button>`:''}<p class="source-footnote">${data.source==='openai'?tr('AI 生成目的地候选；最终分数由固定规则计算','AI proposed candidates; fixed rules produced the final score'):tr('AI 不可用 · 使用明确标记的通用目的地先验','AI unavailable · Clearly labeled general destination prior')} · ${tr('热度信号为通用先验，不代表实时趋势','Popularity is a general prior, not a live trend')}</p></section>`;
- document.querySelector('#show-more-ideas')?.addEventListener('click',()=>renderDiscovery(data,true));
+ const visible=data.candidates.filter(candidate=>discoveryFilter==='all'||(discoveryFilter==='domestic')===(candidate.countryOrRegion==='China'));
+ const [best,...rest]=visible;
+ const filter=`<nav class="discovery-filters" aria-label="${tr('目的地范围','Destination region')}">${[['all','全部','All'],['domestic','国内','Domestic'],['international','出境','International']].map(([key,zh,en])=>`<button type="button" data-region="${key}" aria-pressed="${discoveryFilter===key}">${tr(zh,en)}</button>`).join('')}</nav>`;
+ if(!best){output.innerHTML=`${filter}<p class="empty">${tr('这个范围暂时没有建议，试试其他范围。','No ideas in this region yet. Try another region.')}</p>`;bindDiscovery(data,expanded);return;}
+ const alternatives=rest.slice(0,expanded?rest.length:2);
+ const statement=best.reasons.find(reason=>!reason.includes('¥')&&!/flight|航班|prior|先验/i.test(reason))||best.generalReasons[0]||tr('一个值得探索的旅行方向。','A direction worth exploring.');
+ const tags=[...(best.themes||[]).slice(0,2).map(theme=>({beach:tr('海边','Coast'),festive:tr('节日氛围','Festive'),nature:tr('自然','Nature'),food:tr('美食','Food'),culture:tr('文化','Culture'),snow_winter:tr('冬日','Winter'),hiking:tr('徒步','Hiking'),relaxation:tr('放松','Relaxation')}[theme]||theme)),data.context.dateDescription||tr('日期灵活','Flexible dates')].slice(0,3);
+ output.innerHTML=`${filter}<article class="discovery-feature"><div class="feature-copy"><span class="eyebrow">${tr('为你找到一个不错的方向','A PLACE TO START')}</span><h2>${escape(best.city)}</h2><span class="feature-region">${escape(best.countryOrRegion)} · ${best.score}% ${tr('契合','match')}</span><div class="feature-tags">${tags.map(tag=>`<span>${escape(tag)}</span>`).join('')}</div><p>${escape(statement)}</p><small>${flightLine(best)}</small><button type="button" class="choose-destination" data-city="${escape(best.city)}">${tr('看看这趟旅行','Explore this trip')} →</button></div><div class="feature-art" aria-hidden="true"><img src="/assets/journey-landscape.png" alt="" loading="lazy"></div></article><section class="discovery-alternatives"><h3>${tr('也可以看看','Also worth a look')}</h3><div class="idea-list">${alternatives.map(candidate=>`<article><div><strong>${escape(candidate.city)}</strong><span>${escape(candidate.countryOrRegion)}</span></div><b>${candidate.score}%</b><p>${escape(candidate.reasons.find(reason=>!reason.includes('¥'))||candidate.generalReasons[0]||'')}</p><small>${flightLine(candidate)}</small><button type="button" class="choose-destination" data-city="${escape(candidate.city)}">${tr('查看','Explore')} →</button></article>`).join('')}</div>${!expanded&&rest.length>2?`<button type="button" id="show-more-ideas">${tr('换一批 / 查看更多','More ideas')}</button>`:''}<p class="source-footnote">${data.source==='openai'?tr('目的地灵感由 AI 提议，航班与评分单独核验。','AI suggested destinations; flights and scores are checked separately.'):tr('AI 暂不可用 · 使用通用目的地灵感。','AI unavailable · General destination ideas shown.')} ${data.dateWindows.length?tr('日期仅用于探索比较，尚未由你确认。','Dates are exploratory and not confirmed by you.'):''}</p><div class="future-services">${tr('酒店 · 即将支持　　高铁 · 即将支持　　景点 / 门票 · 即将支持','Stays · Coming soon　　Rail · Coming soon　　Attractions · Coming soon')}</div></section>`;
+ bindDiscovery(data,expanded);
 }
-async function runDiscovery(draft){
- const preferences=draft.interpretation;if(!preferences?.origin||!preferences?.durationDays){showDiscovery(draft);return;}
- const id=++requestId,mode=modeControl.value;result=undefined;discoveryResult=undefined;agentStatus.hidden=false;resultsState.hidden=true;notice.hidden=true;
- agentStatus.querySelector('strong').textContent=tr('途米正在寻找目的地……','Timing is discovering destinations…');agentStatus.querySelector('ul').innerHTML=`<li class="done">${tr('理解你的旅行偏好','Understand your preferences')}</li><li>${tr('结合时间与主题寻找目的地','Use timing and themes')}</li><li>${tr('检查出发地航班方案','Check flight options')}</li><li>${tr('比较预算与旅行时长','Compare budget and duration')}</li><li>${tr('生成推荐','Build recommendation')}</li>`;
- try{const next=await discoverDestinations(preferences,{mode,language});if(id!==requestId)return;discoveryResult=next;renderDiscovery(next);resultsState.hidden=false;document.querySelector('#result-meta').textContent=next.source==='openai'?'DISCOVER · AI + DETERMINISTIC':'DISCOVER · LABELED FALLBACK';resultsState.scrollIntoView({behavior:'smooth',block:'start'});}catch(error){if(id!==requestId)return;showDiscovery(draft);notice.hidden=false;notice.textContent=error.message;}finally{if(id===requestId)agentStatus.hidden=true;}
+function bindDiscovery(data,expanded){
+ output.querySelectorAll('[data-region]').forEach(button=>button.addEventListener('click',()=>{discoveryFilter=button.dataset.region;renderDiscovery(data);}));
+ output.querySelector('#show-more-ideas')?.addEventListener('click',()=>renderDiscovery(data,true));
+ output.querySelectorAll('.choose-destination').forEach(button=>button.addEventListener('click',()=>{form.elements.namedItem('destination').value=button.dataset.city;structured.open=true;structured.scrollIntoView({behavior:'smooth',block:'start'});}));
+}
+async function runDiscovery(draft,{skip=false}={}){
+ const preferences=draft.interpretation;
+ if(!skip&&nextClarification(preferences)){showClarification(draft);return;}
+ const id=++requestId,mode=modeControl.value,started=Date.now();result=undefined;discoveryResult=undefined;clarificationDraft=undefined;discoveryFilter=preferences.geographyPreference||(preferences.domesticAllowed===false?'international':preferences.internationalAllowed===false?'domestic':'all');agentStatus.hidden=false;resultsState.hidden=true;notice.hidden=true;
+ agentStatus.querySelector('strong').textContent=tr('途米正在寻找适合的旅行……','Timing is finding your trip…');agentStatus.querySelector('ul').innerHTML=`<li class="done">${tr('正在理解你的旅行想法…','Understanding your trip…')}</li><li>${tr('正在寻找适合的国内外目的地…','Finding suitable destinations…')}</li><li>${tr('正在检查可用交通方案…','Checking transport options…')}</li><li>${tr('正在比较时间与预算…','Comparing dates and budget…')}</li>`;
+ try{const next=await discoverDestinations(preferences,{mode,language});if(id!==requestId)return;await new Promise(resolve=>setTimeout(resolve,Math.max(0,550-(Date.now()-started))));if(id!==requestId)return;discoveryResult=next;renderDiscovery(next);resultsState.hidden=false;document.querySelector('#result-meta').textContent=tr('目的地灵感','DESTINATION IDEAS');resultsState.scrollIntoView({behavior:'smooth',block:'start'});}catch(error){if(id!==requestId)return;resultsState.hidden=false;output.innerHTML=`<p class="empty">${tr('暂时无法获取旅行灵感，请稍后重试或修改条件。','Travel ideas are unavailable right now. Try again or edit your trip.')}</p>`;notice.hidden=false;notice.textContent=tr('请稍后重试。','Please try again later.');}finally{if(id===requestId)agentStatus.hidden=true;}
 }
 function showLiveUnavailable(message){
  result=undefined;output.innerHTML='';resultsState.hidden=false;document.querySelector('#result-meta').textContent=tr('实时数据不可用','LIVE UNAVAILABLE');indicator.textContent=sourceLabel('live','error');notice.hidden=false;
@@ -87,12 +120,12 @@ async function run(){
  button.disabled=true;agentStatus.hidden=false;notice.hidden=true;document.querySelector('#error').textContent='';indicator.textContent=sourceLabel(mode,'checking');
  try{const t=Object.fromEntries(new FormData(form));for(const k of ['nights','flightBudget','hotelBudget','rating'])t[k]=Number(t[k]);const next=await searchTravel(t,mode);if(id!==requestId)return;discoveryResult=undefined;result=next;selected=result.best?.date;render();resultsState.hidden=false;indicator.textContent=sourceLabel(mode);document.querySelector('#result-meta').textContent=mode==='live'?'LIVE · DUFFEL':'DEMO · SEARCH COMPLETE';document.querySelector('#stale').hidden=version===editVersion;resultsState.scrollIntoView({behavior:'smooth',block:'start'});}catch(error){if(id!==requestId)return;if(mode==='live')showLiveUnavailable(error.message);else{structured.open=true;document.querySelector('#error').textContent=error.message;}}finally{if(id===requestId){button.disabled=false;agentStatus.hidden=true;button.querySelector('span').textContent=copy[language].searchDates;}}
 }
-function changeMode(){++requestId;result=undefined;discoveryResult=undefined;output.innerHTML='';resultsState.hidden=true;notice.hidden=true;indicator.textContent=sourceLabel();}
+function changeMode(){++requestId;result=undefined;discoveryResult=undefined;clarificationDraft=undefined;output.innerHTML='';resultsState.hidden=true;notice.hidden=true;indicator.textContent=sourceLabel();}
 
 modeControl.addEventListener('change',changeMode);form.addEventListener('submit',e=>{e.preventDefault();run();});form.addEventListener('input',()=>{++editVersion;document.querySelector('#stale').hidden=!result;});
 document.querySelector('#edit-request').addEventListener('click',()=>{structured.open=true;document.querySelector('#ask-state').scrollIntoView({behavior:'smooth'});});
 document.querySelector('#lang-zh').addEventListener('click',()=>applyLanguage('zh'));document.querySelector('#lang-en').addEventListener('click',()=>applyLanguage('en'));
-document.querySelectorAll('.inspire-chip').forEach(chip=>chip.addEventListener('click',()=>{const input=document.querySelector('#trip-description'),phrase=chip.dataset[language];input.value=input.value.trim()?`${input.value.trim()}${language==='zh'?'，':'. '}${phrase}`:phrase;input.focus();}));
+document.querySelector('#trip-description').addEventListener('input',renderInspiration);
 const preferenceParser=new FallbackPreferenceParser(
  new LLMPreferenceParser({endpoint:'/api/travel/preferences/parse'}),
  new DemoPreferenceParser()

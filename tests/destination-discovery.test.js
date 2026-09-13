@@ -58,7 +58,7 @@ test('Spring Festival without dates remains holiday context and creates no Janua
 });
 
 test('broad month preserves the requested period and labels representative windows as generated',()=>{
-  const context=createTemporalContext(preferences,{now});const windows=planRepresentativeDateWindows(context,5);assert.equal(context.month,12);assert.ok(windows.length>0);assert.ok(windows.every(window=>window.source==='system_generated'&&window.userProvided===false&&window.departure.startsWith('2026-12-')));
+  const context=createTemporalContext(preferences,{now});const windows=planRepresentativeDateWindows(context,5);assert.equal(context.month,12);assert.equal(context.dateDescription,'12月');assert.equal(context.datePrecision,'broad_month');assert.ok(windows.length>0);assert.ok(windows.every(window=>window.source==='system_generated_exploration_window'&&window.userProvided===false&&window.departure.startsWith('2026-12-')));
 });
 
 test('LLM discovery failure uses a labeled deterministic fallback with no invented flight prices',async()=>{
