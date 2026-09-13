@@ -58,5 +58,5 @@ test('trip detail shows four modules, transparent availability and at most two c
  for(const module of ['transport','stay','itinerary'])assert.match(html,new RegExp(`data-trip-module="${module}"`));
  assert.match(html,/实时车次与票价暂未接入/);assert.match(html,/住宿实时价格与库存暂未接入/);
  assert.doesNotMatch(html,/高铁\s*¥|自驾\s*¥|2h12m|酒店已确认/);
- const app=await readFile(new URL('../dist/app.js',import.meta.url),'utf8');assert.match(app,/data-trip-module=\\"timing\\"|data-trip-module="timing"/);
+ const app=await readFile(new URL('../dist/app.js',import.meta.url),'utf8');assert.match(app,/renderTripTimingControls\(experience,language\)/);
 });

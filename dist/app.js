@@ -9,8 +9,8 @@ import {displayCity,presentDestination} from './lib/discovery/destination-identi
 import {LocalDestinationVisualProvider} from './lib/discovery/destination-visual-provider.js';
 import {planTrip,prepareExploration} from './lib/planning-service.js';
 import {preferenceSummary} from './lib/preference-constraints.js';
-import {buildTripExperience} from './lib/trip-experience.js';
-import {renderTripHero,renderTripSections} from './trip-view.js';
+import {TripWorkspaceSession} from './lib/trip-workspace.js';
+import {renderTripHero,renderTripSections,renderTripTimingControls} from './trip-view.js';
 import {presentDiscoveryCandidate,displayTransportStatus,displayLabel} from './lib/display-localization.js';
 import {planningCandidateForDestination} from './lib/discovery/destination-access-resolver.js';
 import {getDestination} from './lib/discovery/destination-universe.js';
@@ -20,6 +20,11 @@ const modeControl=document.querySelector('#data-mode'),indicator=document.queryS
 const notice=document.querySelector('#source-notice'),resultsState=document.querySelector('#results-state');
 const agentStatus=document.querySelector('#agent-status'),structured=document.querySelector('#structured-details');
 let result,discoveryResult,clarificationDraft,independentTrip,selected,language='zh',requestId=0,editVersion=0,discoveryFilter='all',discoveryVisible=null,chosenCandidate=null;
+let tripWorkspace=null,tripWorkspaceKey='',preferredTripPace=null;
+function workspaceFor({trip,plan,flightVerification,candidate=null,key}){
+ if(!tripWorkspace||tripWorkspaceKey!==key){tripWorkspace=new TripWorkspaceSession({trip,plan,flightVerification,candidate,pace:preferredTripPace});tripWorkspaceKey=key;}
+ return tripWorkspace;
+}
 const discoverySession=new DestinationRecommendationSession();
 
 const copy={
@@ -38,6 +43,7 @@ function sourceLabel(mode=modeControl.value,state='ready'){
  return tr('实时航班 · 演示酒店','Duffel flights · Demo hotels');
 }
 function applyLanguage(next){
+ const tripWasOpen=!output.querySelector('#trip-detail')?.hidden&&Boolean(output.querySelector('#trip-detail'));
  language=next;document.documentElement.lang=next==='zh'?'zh-CN':'en';
  document.querySelector('#lang-zh').classList.toggle('active',next==='zh');document.querySelector('#lang-en').classList.toggle('active',next==='en');
  document.querySelectorAll('[data-i18n]').forEach(el=>{const value=copy[next][el.dataset.i18n];if(value!=null) value.includes('<strong>')?el.innerHTML=value:el.textContent=value;});
@@ -46,7 +52,7 @@ function applyLanguage(next){
  updateGuidance();
  renderInspiration();
  document.dispatchEvent(new CustomEvent('timing:language',{detail:{language}}));
- if(result){document.querySelector('#result-meta').textContent=result.dataSource==='live'?tr('实时航班 · Duffel','LIVE · DUFFEL'):tr('演示数据 · 搜索完成','DEMO · SEARCH COMPLETE');render();}else if(independentTrip)renderStandaloneTrip(independentTrip);else if(discoveryResult){document.querySelector('#result-meta').textContent=tr('目的地灵感','DESTINATION IDEAS');renderDiscovery(discoveryResult);}else if(clarificationDraft)showClarification(clarificationDraft);
+ if(result){document.querySelector('#result-meta').textContent=result.dataSource==='live'?tr('实时航班 · Duffel','LIVE · DUFFEL'):tr('演示数据 · 搜索完成','DEMO · SEARCH COMPLETE');render();if(tripWasOpen)output.querySelector('#trip-detail').hidden=false;}else if(independentTrip)renderStandaloneTrip(independentTrip);else if(discoveryResult){document.querySelector('#result-meta').textContent=tr('目的地灵感','DESTINATION IDEAS');renderDiscovery(discoveryResult);}else if(clarificationDraft)showClarification(clarificationDraft);
 }
 const inspirationService=new InspirationService();
 const visualProvider=new LocalDestinationVisualProvider();
@@ -70,24 +76,26 @@ function detailText(c,t){
 }
 function render(){
  const {trip:t,best:b,decision:d,candidates:cs,preferences:p}=result;
- const tripExperience=buildTripExperience({trip:t,plan:result.plan,flightVerification:{status:b?'verified':'not_checked',source:result.dataSource,quote:b?.flight||null}});
+ const active=cs.find(c=>c.date===selected)||b;
+ const displayPlan=active?{...result.plan,windows:[{departure:active.date,returnDate:active.returnDate},...(result.plan?.windows||[]).filter(window=>window.departure!==active.date)]}:result.plan;
+ const tripExperience=workspaceFor({trip:t,plan:displayPlan,flightVerification:{status:active?'verified':'not_checked',source:result.dataSource,quote:active?.flight||null},key:`result:${t.origin}:${t.destination}:${active?.date}:${active?.flight?.id}`}).experience;
  const route=`${escape(displayCity(t.origin,language))} → ${escape(displayCity(t.destination,language))}`,max=Math.max(...cs.map(c=>c.total),1);
  const reason=!b?tr('当前没有符合条件的航班与酒店组合。请调整偏好或旅行时间。','No flight and hotel combination matches your current constraints.'):d==='WAIT'?tr('当前没有符合已设置预算的方案；这不是价格下跌预测。','No option fits the budgets you set; this is not a price forecast.'):b.budgetStatus==='unconfirmed'?tr('预算未定，先按价格、便利程度与偏好比较；这里不判断是否负担得起。','With no confirmed budget, this ranks value, convenience and preferences without an affordability claim.'):d==='CHANGE DATE'?tr(`换到 ${date(b.date)} 出发，更符合你的预算与偏好。`,`Leaving on ${date(b.date)} is a better fit for your budget and preferences.`):tr('这是当前条件下评分最高、且符合预算的选择。','This is the highest-scoring option that fits your current constraints.');
- const detail=cs.length?`<section id="trip-detail" class="detail-shell" hidden><div class="detail-heading"><div><h2>${tr('这趟旅行','Trip detail')}</h2><p>${route}${b?` · ${date(b.date)} – ${date(b.returnDate)}`:''}</p></div><span class="badge ${d==='WAIT'?'wait':d==='CHANGE DATE'?'change':''}">${displayLabel(d,language)}</span></div>${renderTripHero(tripExperience,language)}<div class="timing-copy"><h3>${tr('01 · 为什么是这个时间？','01 · Timing')}</h3><p>${reason}</p></div><div class="chart" aria-label="${tr('不同出发日期的旅行总价','Total trip cost by departure date')}">${cs.map(c=>`<button class="bar-col ${c.date===selected?'active':''}" data-date="${c.date}" aria-label="${date(c.date)}, ${money(c.total)}"><strong>${money(c.total)}</strong><span class="bar" style="height:${Math.round(c.total/max*105)}px"><b style="height:${c.flight.price/c.total*100}%"></b></span><span>${date(c.date)}</span></button>`).join('')}</div><div class="table-wrap"><table><thead><tr><th>${tr('出发日期','DEPARTURE')}</th><th>${tr('航班','FLIGHT')}</th><th>${tr('演示酒店 / 晚','DEMO HOTEL / NIGHT')}</th><th>${tr('总价','TOTAL')}</th><th>${tr('匹配度','FIT')}</th></tr></thead><tbody>${cs.map(c=>`<tr class="${c.date===selected?'selected':''}"><td><button class="row-button" data-date="${c.date}">${date(c.date)} – ${date(c.returnDate)}</button><small>${c.date===b?.date&&b.feasible?tr('✦ 推荐','✦ Recommended'):c.budgetStatus==='unconfirmed'?tr('预算未定','Budget unset'):c.feasible?tr('预算内','Within budgets'):tr('超出预算','Over budget')}</small></td><td>${money(c.flight.price)}<small>${escape(result.dataSource==='demo'&&language==='zh'?'演示航班':c.flight.airline||'')} · ${c.flight.stops?tr(`${c.flight.stops} 次中转`,`${c.flight.stops} stop${c.flight.stops===1?'':'s'}`):tr('直飞','Nonstop')}</small></td><td>${money(c.hotel.nightly)}<small>★ ${c.hotel.rating}</small></td><td><strong>${money(c.total)}</strong></td><td><span class="score">${c.score}/100</span></td></tr>`).join('')}</tbody></table></div><div class="selection">${selection(cs.find(c=>c.date===selected)||b,t)}</div>${renderTripSections(tripExperience,language)}</section>`:'';
+ const detail=cs.length?`<section id="trip-detail" class="detail-shell" hidden><div class="detail-heading"><div><h2>${tr('这趟旅行','Trip detail')}</h2><p>${route}${b?` · ${date(b.date)} – ${date(b.returnDate)}`:''}</p></div><span class="badge ${d==='WAIT'?'wait':d==='CHANGE DATE'?'change':''}">${displayLabel(d,language)}</span></div>${renderTripHero(tripExperience,language)}${renderTripTimingControls(tripExperience,language)}<div class="timing-copy"><h3>${tr('为什么是这个时间？','Why this timing?')}</h3><p>${reason}</p></div><div class="chart" aria-label="${tr('不同出发日期的旅行总价','Total trip cost by departure date')}">${cs.map(c=>`<button class="bar-col ${c.date===selected?'active':''}" data-date="${c.date}" aria-label="${date(c.date)}, ${money(c.total)}"><strong>${money(c.total)}</strong><span class="bar" style="height:${Math.round(c.total/max*105)}px"><b style="height:${c.flight.price/c.total*100}%"></b></span><span>${date(c.date)}</span></button>`).join('')}</div><div class="table-wrap"><table><thead><tr><th>${tr('出发日期','DEPARTURE')}</th><th>${tr('航班','FLIGHT')}</th><th>${tr('演示酒店 / 晚','DEMO HOTEL / NIGHT')}</th><th>${tr('总价','TOTAL')}</th><th>${tr('匹配度','FIT')}</th></tr></thead><tbody>${cs.map(c=>`<tr class="${c.date===selected?'selected':''}"><td><button class="row-button" data-date="${c.date}">${date(c.date)} – ${date(c.returnDate)}</button><small>${c.date===b?.date&&b.feasible?tr('✦ 推荐','✦ Recommended'):c.budgetStatus==='unconfirmed'?tr('预算未定','Budget unset'):c.feasible?tr('预算内','Within budgets'):tr('超出预算','Over budget')}</small></td><td>${money(c.flight.price)}<small>${escape(result.dataSource==='demo'&&language==='zh'?'演示航班':c.flight.airline||'')} · ${c.flight.stops?tr(`${c.flight.stops} 次中转`,`${c.flight.stops} stop${c.flight.stops===1?'':'s'}`):tr('直飞','Nonstop')}</small></td><td>${money(c.hotel.nightly)}<small>★ ${c.hotel.rating}</small></td><td><strong>${money(c.total)}</strong></td><td><span class="score">${c.score}/100</span></td></tr>`).join('')}</tbody></table></div><div class="selection">${selection(cs.find(c=>c.date===selected)||b,t)}</div>${renderTripSections(tripExperience,language)}</section>`:'';
  output.innerHTML=`${result.plan?.dateSource==='system_generated_exploration_window'?`<p class="source-footnote">${tr('以下是系统生成的探索日期，尚未确定；之后可修改具体日期。','These are provisional exploration dates; you can lock exact dates later.')}</p>`:''}${result.plan?.durationRange?`<p class="source-footnote">${tr(`暂按 ${result.plan.nights} 晚比较（建议 ${result.plan.durationRange[0]}–${result.plan.durationRange[1]} 晚），可以修改。`,`Comparing ${result.plan.nights} nights provisionally (${result.plan.durationRange[0]}–${result.plan.durationRange[1]} suggested); editable.`)}</p>`:''}<article class="recommendation"><div class="rec-top"><span class="badge ${d==='WAIT'?'wait':d==='CHANGE DATE'?'change':''}">${displayLabel(d,language)}</span><span class="rec-label">${tr('途米推荐','TIMING RECOMMENDS')}</span></div><h2 class="rec-route">${route}</h2>${b?`<p class="rec-dates">${date(b.date)} – ${date(b.returnDate)}</p>`:''}<p>${reason}</p>${b?`<div class="rec-summary"><div class="rec-cost"><small>${result.dataSource==='live'?tr('含演示酒店估算的旅行总价','TOTAL WITH DEMO HOTEL ESTIMATE'):tr('演示旅行总价估算','DEMO TOTAL ESTIMATE')}</small><strong>${money(b.total)}</strong></div><div class="fit-reasons"><span>${tr('为什么适合你','WHY IT FITS')}</span><ul>${reasonsFor(b,t).map(x=>`<li>${x}</li>`).join('')}</ul></div></div><button type="button" class="view-trip">${tr('查看这趟旅行','View this trip')} →</button>`:''}</article>${detail}<p class="source-footnote">${result.dataSource==='live'?tr('Duffel 实时航班 · 演示酒店数据','Duffel live flights · Demo hotel'):tr('演示数据 · 模拟航班与酒店','Demo data · Mock flight and hotel prices')} · ${p.priority==='comfort'?tr('舒适优先','comfort priority'):tr('性价比优先','best value')}</p>`;
  bindResults();
 }
 function selection(c,t){return `<h3>${tr('演示酒店','Demo hotel')} · ${escape(language==='zh'?'酒店参考方案':c.hotel.name)} · ${date(c.date)} – ${date(c.returnDate)}</h3><p>${detailText(c,t)}</p>`}
 function bindResults(){
  output.querySelector('.view-trip')?.addEventListener('click',()=>{const el=output.querySelector('#trip-detail');el.hidden=false;el.scrollIntoView({behavior:'smooth',block:'start'});});
- output.querySelectorAll('[data-date]').forEach(el=>el.addEventListener('click',()=>{const open=!output.querySelector('#trip-detail')?.hidden;selected=el.dataset.date;render();if(open){const detail=output.querySelector('#trip-detail');detail.hidden=false;}}));
+ output.querySelectorAll('[data-date]').forEach(el=>el.addEventListener('click',()=>{const open=!output.querySelector('#trip-detail')?.hidden;selected=el.dataset.date;tripWorkspace=null;render();if(open){const detail=output.querySelector('#trip-detail');detail.hidden=false;}}));
 }
 function renderStandaloneTrip(state){
  independentTrip=state;result=undefined;discoveryResult=undefined;
- const {trip,plan,flightVerification,candidate}=state,experience=buildTripExperience({trip,plan,flightVerification,candidate});
+ const {trip,plan,flightVerification,candidate}=state,experience=workspaceFor({trip,plan,flightVerification,candidate,key:`standalone:${trip.origin}:${trip.destination}:${plan.windows[0]?.departure}:${trip.nights}`}).experience;
  const windows=plan.windows.slice(0,3).map(window=>`<span>${date(window.departure)} – ${date(window.returnDate)}</span>`).join(' · ');
  const timing=plan.dateSource==='user_provided'?tr('你选择的旅行时间','Your travel window'):tr('系统生成的探索日期 · 可在旅行条件中修改','Provisional exploration dates · Edit in trip details');
- output.innerHTML=`<section id="trip-detail" class="detail-shell standalone-trip">${renderTripHero(experience,language)}<section class="trip-module" data-trip-module="timing"><div class="trip-module-heading"><span>01</span><h3>${tr('什么时候去','Timing')}</h3></div><p class="trip-module-intro">${escape(timing)}</p><p class="trip-window-list">${windows}</p>${candidate?`<p class="trip-availability">${escape(displayTransportStatus(candidate,language))}</p>`:''}</section>${renderTripSections(experience,language)}</section>`;
+ output.innerHTML=`<section id="trip-detail" class="detail-shell standalone-trip">${renderTripHero(experience,language)}${renderTripTimingControls(experience,language)}<p class="trip-window-list">${windows}</p>${candidate?`<p class="trip-availability">${escape(displayTransportStatus(candidate,language))}</p>`:''}${renderTripSections(experience,language)}</section>`;
  resultsState.hidden=false;document.querySelector('#result-meta').textContent=tr('旅行规划','TRIP PLAN');resultsState.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function showClarification(draft){
@@ -146,10 +154,57 @@ function showLiveUnavailable(message,trip){
 }
 async function run(){
  const id=++requestId,version=editVersion,mode=modeControl.value,button=document.querySelector('#submit');
+ tripWorkspace=null;tripWorkspaceKey='';
  button.disabled=true;agentStatus.hidden=false;notice.hidden=true;document.querySelector('#error').textContent='';indicator.textContent=sourceLabel(mode,'checking');
  try{const t=formTrip();if(!t.origin?.trim())throw new Error(tr('请填写出发地，再继续规划。','Add an origin to continue planning.'));if(!t.destination){button.disabled=false;agentStatus.hidden=true;await runDiscovery({fields:{travelIntents:t.travelIntents?.split(',').filter(Boolean)||[]},interpretation:{...t,destinationState:'discovery_required',departureWindowText:t.departureWindowText}},{skip:true});return;}const plan=prepareExploration(t,{language}),candidate=chosenCandidate?.city===t.destination?chosenCandidate:planningCandidateForDestination(t.destination,mode);if(candidate&&(!candidate.access?.flightAccess.providerLookup||candidate.access.flightAccess.requiresOnwardTransfer)){renderStandaloneTrip({trip:plan.trip,plan,flightVerification:candidate.verification,candidate});return;}if(['train','self_drive'].includes(plan.trip.constraints.hard.transportModeRequired)){renderStandaloneTrip({trip:plan.trip,plan,flightVerification:{status:'not_checked',source:mode},candidate});return;}const next=await planTrip(t,mode,{language});if(id!==requestId)return;if(!next.best){renderStandaloneTrip({trip:next.trip,plan:next.plan,flightVerification:{status:'unavailable',source:mode},candidate});return;}independentTrip=undefined;discoveryResult=undefined;result=next;selected=result.best?.date;render();resultsState.hidden=false;indicator.textContent=sourceLabel(mode);document.querySelector('#result-meta').textContent=mode==='live'?tr('实时航班 · Duffel','LIVE · DUFFEL'):tr('演示数据 · 搜索完成','DEMO · SEARCH COMPLETE');document.querySelector('#stale').hidden=version===editVersion;resultsState.scrollIntoView({behavior:'smooth',block:'start'});}catch(error){if(id!==requestId)return;if(mode==='live'&&form.elements.namedItem('origin').value.trim())showLiveUnavailable(error.message,formTrip());else{structured.open=true;document.querySelector('#error').textContent=error.message;}}finally{if(id===requestId){button.disabled=false;agentStatus.hidden=true;button.querySelector('span').textContent=copy[language].searchDates;}}
 }
 function changeMode(){++requestId;result=undefined;independentTrip=undefined;discoveryResult=undefined;clarificationDraft=undefined;output.innerHTML='';resultsState.hidden=true;notice.hidden=true;indicator.textContent=sourceLabel();}
+
+function refreshTripModules(){
+ if(!tripWorkspace)return;
+ const wrapper=document.createElement('div');wrapper.innerHTML=renderTripSections(tripWorkspace.experience,language);
+ for(const section of wrapper.querySelectorAll('[data-trip-module]'))output.querySelector(`[data-trip-module="${section.dataset.tripModule}"]`)?.replaceWith(section);
+}
+async function commitTripRefinement(){
+ if(!tripWorkspace)return;preferredTripPace=tripWorkspace.pace;
+ const trip=tripWorkspace.trip;
+ for(const [key,value] of Object.entries({start:trip.start||'',end:trip.end||'',nights:trip.nights,departureWindowText:trip.departureWindowText||''})){
+  const field=form.elements.namedItem(key);if(field)field.value=value;
+ }
+ await run();
+ const detail=output.querySelector('#trip-detail');if(detail){detail.hidden=false;detail.scrollIntoView({behavior:'smooth',block:'start'});}
+}
+output.addEventListener('click',async event=>{
+ const button=event.target.closest('button');if(!button||!tripWorkspace)return;
+ const action=button.dataset.tripAction,pace=button.dataset.tripPace,option=button.dataset.tripDateOption,nights=button.dataset.tripNights;
+ if(pace){preferredTripPace=pace;tripWorkspace.changePace(pace);refreshTripModules();return;}
+ if(nights){tripWorkspace.changeDuration(Number(nights));await commitTripRefinement();return;}
+ if(option){if(option==='custom'){output.querySelector('.trip-custom-dates')?.querySelector('input')?.focus();return;}
+  try{tripWorkspace.changeDates(option);await commitTripRefinement();}catch(error){output.querySelector('.trip-editor-feedback').textContent=error.message;}return;}
+ if(action==='date'||action==='duration'){
+  for(const panel of output.querySelectorAll('[data-trip-editor]'))panel.hidden=panel.dataset.tripEditor!==action?true:!panel.hidden;
+  return;
+ }
+ if(action==='apply-date'){
+  const departure=output.querySelector('[data-trip-field="departure"]')?.value,returnDate=output.querySelector('[data-trip-field="return"]')?.value;
+  try{tripWorkspace.changeDates('custom',{departure,returnDate});await commitTripRefinement();}catch(error){output.querySelector('.trip-editor-feedback').textContent=error.message;}return;
+ }
+ if(action==='apply-duration'){
+  try{tripWorkspace.changeDuration(Number(output.querySelector('[data-trip-field="nights"]')?.value));await commitTripRefinement();}catch(error){output.querySelector('[data-trip-editor="duration"] p').textContent=error.message;}return;
+ }
+ const day=Number(button.dataset.day),activityId=button.dataset.activity;
+ const before=tripWorkspace.experience;
+ if(action==='remove')tripWorkspace.removeActivity(day,activityId);
+ else if(action==='swap')tripWorkspace.swapActivity(day,activityId);
+ else if(action==='adjust-day')tripWorkspace.adjustDay(day);
+ else if(action==='add-wish'){
+  const row=button.closest('[data-trip-day]');if(row.querySelector('.trip-wish-editor'))return;
+  const editor=document.createElement('div');editor.className='trip-wish-editor';editor.innerHTML=`<label>${tr('想去哪里？','Where would you like to go?')} <input type="text" maxlength="100"></label><button type="button" data-trip-action="save-wish" data-day="${day}">${tr('加入','Add')}</button>`;button.after(editor);editor.querySelector('input').focus();return;
+ }else if(action==='save-wish'){const input=button.closest('.trip-wish-editor')?.querySelector('input'),name=input?.value;if(!name?.trim()){input?.focus();return;}tripWorkspace.addWish(day,name);}
+ else return;
+ if(before===tripWorkspace.experience){const note=document.createElement('small');note.className='trip-action-note';note.textContent=tr('暂无更多地点，可以加入你想去的地方。','No other place yet; add one you would like to visit.');button.after(note);return;}
+ refreshTripModules();
+});
 
 modeControl.addEventListener('change',changeMode);form.addEventListener('submit',e=>{e.preventDefault();run();});form.addEventListener('input',()=>{++editVersion;updateGuidance();document.querySelector('#stale').hidden=!result;});
 document.querySelector('#edit-request').addEventListener('click',()=>{structured.open=true;document.querySelector('#ask-state').scrollIntoView({behavior:'smooth'});});

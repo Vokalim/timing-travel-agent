@@ -30,7 +30,7 @@ export function planTransportOptions({origin,destination,countryOrRegion,duratio
   return {mode,suitabilityScore:required&&mode!==required?0:applicable?Math.max(0,Math.min(100,scores[mode])):0,
    suitability:!applicable?'not_applicable':scores[mode]>=75?'high':scores[mode]>=50?'medium':'low',
    allowed:!required||required===mode,verification,
-   price:quote?.price??null,currency:quote?.currency??null,schedule:null,drivingTimeMinutes:null,
+   price:quote?.price??null,currency:quote?.currency??null,quote,schedule:null,drivingTimeMinutes:null,
    source:quote?.provider||quote?.source||null};
  }).sort(byScore);
  return {options,preferredMode:options.find(option=>option.allowed&&option.suitability!=='not_applicable')?.mode||null,requiredMode:required};

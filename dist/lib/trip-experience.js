@@ -1,6 +1,8 @@
 import {createTripRequest} from './trip-request.js';
 import {destinationIdentity} from './discovery/destination-identity.js';
 import {planTransportOptions} from './discovery/transport-planner.js';
+import {CuratedPlaceProvider} from './providers/place-provider.js';
+import {buildPoiItinerary} from './poi-itinerary.js';
 
 const area=(key,zh,en)=>({key,labels:{zh,en}});
 export class StayRecommendation {recommend(){throw new Error('Implement StayRecommendation.recommend(trip).');}}
@@ -20,24 +22,25 @@ export class PlanningStayRecommendation extends StayRecommendation {
 const themeCopy={food:['探索当地风味','Explore local food'],culture:['安排文化漫步','Explore culture at an easy pace'],nature:['留给自然风景','Spend time with nature'],beach:['在海边放松','Relax by the coast'],hiking:['安排适合体力的徒步','Plan a suitable hike'],shopping:['逛一逛本地街区','Browse local neighborhoods'],relaxation:['放慢脚步','Take a slower day'],photography:['寻找适合拍摄的风景','Make room for photography'],nightlife:['体验夜间氛围','Explore the evening atmosphere']};
 export class ItineraryPlanner {plan(){throw new Error('Implement ItineraryPlanner.plan(trip,stay).');}}
 export class PlanningItinerary extends ItineraryPlanner {
- plan(trip,stay,plan=null){const nights=Number.isInteger(trip.nights)&&trip.nights>0?trip.nights:5,days=Math.min(15,nights),soft=trip.constraints?.soft||{},intents=trip.travelIntents||[];
-  const themes=[...new Set([...intents,...Object.entries(soft).filter(([,value])=>value>0).map(([key])=>key)])].filter(key=>themeCopy[key]);
-  if(!themes.length)themes.push('culture','food','nature');
-  const relaxed=trip.constraints?.pace==='relaxed'||soft.slowTravel>0;
-  const schedule=Array.from({length:days},(_,index)=>({day:index+1,theme:index===0?'arrival':index===days-1?'departure':themes[(index-1)%themes.length],
-   labels:index===0?{zh:'抵达后熟悉周边',en:'Arrive and get oriented'}:index===days-1?{zh:'从容返程',en:'Depart at an easy pace'}:{zh:`${themeCopy[themes[(index-1)%themes.length]][0]}${relaxed?'，留些自由时间':''}`,en:`${themeCopy[themes[(index-1)%themes.length]][1]}${relaxed?', with free time':''}`}}));
+ plan(trip,stay,plan=null,{places=[],routeMatrix=null,pace=null}={}){const nights=Number.isInteger(trip.nights)&&trip.nights>0?trip.nights:5,soft=trip.constraints?.soft||{},intents=trip.travelIntents||[];
+  const preferredPace=pace||trip.constraints?.pace||'balanced';
+  const departure=plan?.windows?.[0]?.departure;
+  const dates=departure?Array.from({length:nights},(_,index)=>new Date(Date.parse(`${departure}T00:00:00Z`)+index*86400000).toISOString().slice(0,10)):[];
+  const itinerary=buildPoiItinerary({places,nights,pace:preferredPace,intents,soft,dates,routeMatrix,stayAreaKeys:stay.areas.map(item=>item.key)});
   const strong=trip.constraints?.strong||{},transportPreference=trip.constraints?.hard?.transportModeRequired||strong.trainPreferred&&'train'||strong.selfDrivePreferred&&'self_drive'||strong.flightPreferred&&'flight'||null;
-  return {status:'planning_guidance',days:schedule,pace:trip.constraints?.pace||null,transportPreference,transportPreferenceStrength:trip.constraints?.hard?.transportModeRequired?'hard':transportPreference?'strong':null,
+  return {...itinerary,transportPreference,transportPreferenceStrength:trip.constraints?.hard?.transportModeRequired?'hard':transportPreference?'strong':null,
    departureWindow:plan?.context?.dateDescription||null,representativeDeparture:plan?.windows?.[0]?.departure||null,dateSource:plan?.dateSource||null,
    stayAreaKeys:stay.areas.map(item=>item.key),confirmedBookings:false};
  }
 }
 
-export function buildTripExperience({trip,plan=null,candidate=null,flightVerification={status:'not_checked',source:null},stayProvider=new PlanningStayRecommendation(),itineraryPlanner=new PlanningItinerary()}){
+export function buildTripExperience({trip,plan=null,candidate=null,flightVerification={status:'not_checked',source:null},stayProvider=new PlanningStayRecommendation(),itineraryPlanner=new PlanningItinerary(),placeProvider=new CuratedPlaceProvider(),routeMatrix=null,pace=null,itineraryOverride=null}){
  const request=createTripRequest({...trip,destination:trip.destination||candidate?.city||null});
  if(!request.destination)throw new Error('Select a destination before planning a stay or itinerary.');
  const nights=plan?.nights||request.nights||5,context={...request,nights};
  const transport=planTransportOptions({origin:context.origin,destination:context.destination,countryOrRegion:candidate?.countryOrRegion,durationDays:nights,constraints:context.constraints,flightVerification});
- const stay=stayProvider.recommend(context),itinerary=itineraryPlanner.plan(context,stay,plan);
+ const stay=stayProvider.recommend(context),places=placeProvider.search(context.destination),itinerary=itineraryOverride||itineraryPlanner.plan(context,stay,plan,{places,routeMatrix,pace});
+ const frequentArea=Object.entries(itinerary.days.reduce((counts,day)=>{for(const activity of day.activities||[])counts[activity.place.areaKey]=(counts[activity.place.areaKey]||0)+1;return counts;},{})).sort((a,b)=>b[1]-a[1])[0]?.[0]||null;
+ if(frequentArea){const anchor=places.find(place=>place.areaKey===frequentArea);stay.poiCluster={areaKey:frequentArea,nearPlace:anchor?.names||null,source:'itinerary_place_cluster'};}
  return {trip:context,plan,transport,stay,itinerary,flightVerification,access:candidate?.access||null};
 }
