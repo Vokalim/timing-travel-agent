@@ -1,5 +1,6 @@
 import {DemoPreferenceParser,tripFields} from './lib/preference-parser.js';
 import {FallbackPreferenceParser,LLMPreferenceParser} from './lib/llm-preference-parser.js';
+import {displayCity} from './lib/discovery/destination-identity.js';
 
 const isZh=()=>document.documentElement.lang.startsWith('zh');
 const t=(zh,en)=>isZh()?zh:en;
@@ -13,7 +14,7 @@ export function setupTripInput(form,onDraftChange,parser=new FallbackPreferenceP
  const renderReview=draft=>{
   review.hidden=false;review.replaceChildren();
   const fields=draft.fields,interpretation=draft.interpretation||{};
-  const title=document.createElement('strong');title.textContent=[fields.origin?`${fields.origin}${fields.destination?' → '+fields.destination:t('出发',' departure')}`:null,!fields.destination&&t('目的地交给途米','Destination by Timing'),draft.dateHint||interpretation.departureWindowText||fields.start,fields.nights&&t(`${fields.nights} 天`,`${fields.nights} days`),(fields.totalTripBudgetCny||interpretation.totalTripBudgetCny||fields.flightBudget)&&`¥${Number(fields.totalTripBudgetCny||interpretation.totalTripBudgetCny||fields.flightBudget).toLocaleString()}`].filter(Boolean).join(' · ');review.append(title);
+  const uiLanguage=isZh()?'zh':'en';const title=document.createElement('strong');title.textContent=[fields.origin?`${displayCity(fields.origin,uiLanguage)}${fields.destination?' → '+displayCity(fields.destination,uiLanguage):t('出发',' departure')}`:null,!fields.destination&&t('目的地交给途米','Destination by Timing'),draft.dateHint||interpretation.departureWindowText||fields.start,fields.nights&&t(`${fields.nights} 天`,`${fields.nights} days`),(fields.totalTripBudgetCny||interpretation.totalTripBudgetCny||fields.flightBudget)&&`¥${Number(fields.totalTripBudgetCny||interpretation.totalTripBudgetCny||fields.flightBudget).toLocaleString()}`].filter(Boolean).join(' · ');review.append(title);
   const tags=[...(fields.travelIntents||[]).slice(0,3).map(intent=>intentLabels[intent]?.[isZh()?0:1]||intent),interpretation.avoidOvernightFlights===true?t('避开红眼航班','No overnight flights'):null];
   if(tags.filter(Boolean).length){const small=document.createElement('p');small.textContent=tags.filter(Boolean).join(' · ');review.append(small);}
   if(draft.parserStatus==='fallback'||draft.parserStatus==='demo'){const warning=document.createElement('small');warning.textContent=t('AI 暂不可用 · 已用本地解析，请核对条件','AI unavailable · Local fallback used; please review');review.append(warning);}
