@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-label="Illustrated grassland landscape">
+  <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#8aa6aa"/><stop offset="1" stop-color="#f3dfb9"/></linearGradient><linearGradient id="land" x2="0" y2="1"><stop stop-color="#a4ab79"/><stop offset="1" stop-color="#536e53"/></linearGradient></defs>
+  <path fill="url(#sky)" d="M0 0h1200v760H0z"/><circle cx="951" cy="206" r="59" fill="#fff2cf" opacity=".8"/>
+  <path fill="#a8b19a" d="M0 508q244-114 442-45t381-35q204-59 377 14v318H0z"/>
+  <path fill="#899d79" d="M0 608q245-105 481-53t719-65v270H0z"/>
+  <path fill="url(#land)" d="M0 760V675q259-125 546-57t654-50v192z"/>
+  <path d="M45 739q54-47 105-54m149 72q40-51 111-80m223 71q47-45 116-69m258 63q52-43 120-62" fill="none" stroke="#c1bf8b" stroke-width="2" opacity=".5"/>
+</svg>

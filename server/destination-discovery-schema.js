@@ -5,12 +5,12 @@ const textArray={type:'array',items:{type:'string',maxLength:160},maxItems:4};
 export const DESTINATION_DISCOVERY_SCHEMA={
   type:'object',
   properties:{
-    candidates:{type:'array',minItems:5,maxItems:8,items:{
+    candidates:{type:'array',minItems:5,maxItems:20,items:{
       type:'object',
       properties:{
         city:{type:'string',maxLength:80},
         countryOrRegion:{type:'string',maxLength:80},
-        iataOrMetroCode:{type:'string',pattern:'^[A-Z]{3}$'},
+        iataOrMetroCode:{type:['string','null']},
         themes:{type:'array',items:{type:'string',enum:TRAVEL_INTENTS},maxItems:6},
         seasonalReasons:textArray,
         generalReasons:textArray,

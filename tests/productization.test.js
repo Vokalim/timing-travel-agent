@@ -77,11 +77,12 @@ test('lunar and named holidays stay soft with explicitly provisional comparison 
  }
 });
 
-test('train and ground are unavailable without fabricated schedules or prices',async()=>{
- assert.deepEqual(transportModes,['flight','train','ground']);
- const transport=transportAvailability({status:'not_checked',source:'demo'});
- assert.deepEqual(transport.train,{status:'not_yet_live'});assert.deepEqual(transport.ground,{status:'not_yet_live'});
- const result=await discover(base);assert.ok(result.candidates.every(item=>!('price' in item.transport.train)&&!('price' in item.transport.ground)));
+test('train and self-drive suitability never fabricate schedules, fares or route times',async()=>{
+ assert.deepEqual(transportModes,['flight','train','self_drive']);
+ const transport=transportAvailability({status:'not_checked',source:'demo'},{origin:'Shanghai',destination:'Hangzhou'});
+ assert.equal(transport.train.verification.status,'not_yet_live');assert.equal(transport.self_drive.verification.status,'not_yet_live');
+ assert.equal(transport.train.price,null);assert.equal(transport.train.schedule,null);assert.equal(transport.self_drive.drivingTimeMinutes,null);
+ const result=await discover(base);assert.ok(result.candidates.every(item=>item.transport.train.price===null&&item.transport.self_drive.drivingTimeMinutes===null));
 });
 
 test('untrusted LLM price or score fields never become ranking inputs',async()=>{

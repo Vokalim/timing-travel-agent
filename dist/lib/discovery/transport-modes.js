@@ -1,4 +1,6 @@
-export const transportModes=Object.freeze(['flight','train','ground']);
-export function transportAvailability(flightVerification){
- return {flight:{status:flightVerification.status,source:flightVerification.source},train:{status:'not_yet_live'},ground:{status:'not_yet_live'}};
+import {TRANSPORT_MODES,planTransportOptions} from './transport-planner.js';
+export const transportModes=TRANSPORT_MODES;
+export function transportAvailability(flightVerification,context={}){
+ const plan=planTransportOptions({...context,flightVerification});
+ return Object.fromEntries(plan.options.map(option=>[option.mode,option]));
 }

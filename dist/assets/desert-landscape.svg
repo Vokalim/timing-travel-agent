@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-label="Illustrated desert landscape">
+  <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#6b8291"/><stop offset=".58" stop-color="#ecd9b8"/><stop offset="1" stop-color="#efc393"/></linearGradient><linearGradient id="sand" x2=".9" y2="1"><stop stop-color="#d2a373"/><stop offset="1" stop-color="#9b694e"/></linearGradient></defs>
+  <path fill="url(#sky)" d="M0 0h1200v760H0z"/><circle cx="929" cy="235" r="75" fill="#fff1d5" opacity=".75"/>
+  <path fill="#b99072" d="M0 500q215-165 440-55t440-70q160-62 320 28v357H0z"/>
+  <path fill="#d6ae7f" d="M0 645q310-210 618-115t582-75v305H0z"/>
+  <path fill="url(#sand)" d="M0 760V650q274-102 527-34t673-116v260z"/>
+  <path d="M160 700q290-77 525 13m-25-190q245 42 390-34" fill="none" stroke="#f4d2a4" stroke-width="3" opacity=".38"/>
+</svg>

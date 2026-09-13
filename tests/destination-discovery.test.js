@@ -65,8 +65,8 @@ test('LLM discovery failure uses a labeled deterministic fallback with no invent
   const fallback=new FallbackDestinationDiscoveryService({discover:async()=>{throw new Error('LLM unavailable');}},new DemoDestinationDiscoveryService());const discovery=await fallback.discover(preferences,createTemporalContext(preferences,{now}));assert.equal(discovery.parserStatus,'fallback');assert.match(discovery.fallbackReason,/unavailable/);assert.ok(discovery.candidates.every(item=>!('price' in item)));
 });
 
-test('Duffel failure retains candidates and labels flight verification unavailable without mock prices',async()=>{
-  const failing={search:async()=>{throw new Error('Live flight data unavailable.');}};const result=await discoverDestinations(preferences,{mode:'live',now,flightProvider:failing,discoveryService:new DemoDestinationDiscoveryService()});assert.ok(result.candidates.length);assert.ok(result.candidates.every(item=>item.verification.status==='unavailable'&&!('quote' in item.verification)));
+test('Duffel failure retains supported and unsupported candidates without mock prices',async()=>{
+  const failing={search:async()=>{throw new Error('Live flight data unavailable.');}};const result=await discoverDestinations(preferences,{mode:'live',now,flightProvider:failing,discoveryService:new DemoDestinationDiscoveryService()});assert.ok(result.candidates.length);assert.ok(result.candidates.every(item=>['unavailable','not_checked'].includes(item.verification.status)&&!('quote' in item.verification)));assert.ok(result.candidates.some(item=>item.verification.status==='not_checked'&&item.access.flightAccess.providerLookup===null));
 });
 
 test('general popularity prior never claims live or current trends',()=>{
@@ -95,7 +95,7 @@ test('server discovery rejects unsupported cities and mismatched IATA codes befo
 test('avoid-overnight preference filters verified red-eye options deterministically',async()=>{
   const overnightProvider={search:async(trip,date)=>[{id:trip.destination,price:1200,stops:0,currency:'CNY',departureDateTime:`${date}T02:00:00+08:00`,segments:[]}]};
   const result=await discoverDestinations({...preferences,avoidOvernightFlights:true},{now,flightProvider:overnightProvider,discoveryService:new DemoDestinationDiscoveryService()});
-  assert.ok(result.candidates.every(item=>item.verification.status==='unavailable'));
+  assert.ok(result.candidates.every(item=>['unavailable','not_checked'].includes(item.verification.status)&&!('quote' in item.verification)));
 });
 
 test('avoid-overnight preference rejects unknown or overnight return timing',async()=>{
@@ -104,6 +104,6 @@ test('avoid-overnight preference rejects unknown or overnight return timing',asy
     {id:'red-eye-return',price:1300,stops:0,segments:[{departingAt:'2026-12-05T09:00:00+08:00'},{departingAt:'2026-12-10T02:00:00+09:00'}]}
   ]){
     const result=await discoverDestinations({...preferences,avoidOvernightFlights:true},{now,flightProvider:{search:async()=>[quote]},discoveryService:new DemoDestinationDiscoveryService()});
-    assert.ok(result.candidates.every(item=>item.verification.status==='unavailable'));
+    assert.ok(result.candidates.every(item=>['unavailable','not_checked'].includes(item.verification.status)&&!('quote' in item.verification)));
   }
 });

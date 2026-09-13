@@ -1,3 +1,5 @@
+import {displayLabel} from './display-localization.js';
+
 // Structured, deterministic interpretation of optional preference text. Preserve the
 // original wording so hotel and itinerary planners can use it when richer data exists.
 export function parsePreferenceConstraints(text='', existing={}) {
@@ -5,8 +7,14 @@ export function parsePreferenceConstraints(text='', existing={}) {
  const hard={...existing.hard},strong={...existing.strong},soft={...existing.soft};
  const has=re=>re.test(t);
  const direct=has(/直飞|直飛|non.?stop|direct flight/);
- if(direct&&!has(/do not want (?:non.?stop|direct)|don['’]t want (?:non.?stop|direct)|不要直飞|不坐直飞/)){if(has(/只看直飞|只要直飞|必须直飞|必須直飛|仅限直飞|直飞限定|direct flights? only|must (?:be )?(?:non.?stop|direct)|no connections|^non.?stop\b/))hard.directFlightRequired=true;
+ if(direct&&!has(/do not want (?:non.?stop|direct)|don['’]t want (?:non.?stop|direct)|不要直飞|不坐直飞/)){if(has(/只看直飞|只要直飞|必须直飞|必須直飛|仅限直飞|直飞限定|direct flights? only|must (?:be )?(?:non.?stop|direct)|no connections|^non.?stop\b/)){hard.directFlightRequired=true;hard.transportModeRequired='flight';}
  else strong.directFlightPreferred=true;}
+ if(has(/只坐高铁|只坐高鐵|只看高铁|只看高鐵|必须坐高铁|必須坐高鐵|train only|rail only|only (?:by )?(?:train|rail)/))hard.transportModeRequired='train';
+ else if(has(/最好(?:坐|乘)?高铁|最好(?:坐|乘)?高鐵|高铁优先|高鐵優先|prefer (?:the )?(?:train|rail)|train preferred/))strong.trainPreferred=true;
+ if(has(/只自驾|只自駕|必须自驾|必須自駕|self.drive only|drive only/))hard.transportModeRequired='self_drive';
+ else if(has(/想自驾|想自駕|最好自驾|最好自駕|自驾优先|自駕優先|prefer (?:to )?drive|road trip|self.drive preferred/))strong.selfDrivePreferred=true;
+ if(has(/只坐飞机|只坐飛機|只看飞机|只看飛機|flight only|fly only|only (?:by )?(?:plane|air)/))hard.transportModeRequired='flight';
+ else if(has(/最好坐飞机|最好坐飛機|飞机优先|飛機優先|prefer (?:to )?fly|prefer flights?/))strong.flightPreferred=true;
  if(has(/红眼|紅眼|overnight flight|red.?eye/)){
   if(has(/(?:尽量|盡量|最好)\s*(?:不要|避免)?\s*(?:红眼|紅眼)|(?:prefer|ideally|if possible|avoid if possible)[^，,。.;]{0,18}(?:overnight flight|red.?eye)/))strong.avoidOvernightFlightsPreferred=true;
   else if(has(/不要|不坐|拒绝|避开|避開|no |avoid |never |must not /))hard.avoidOvernightFlights=true;
@@ -39,6 +47,6 @@ export function isExcludedDestination(hard={},city='',country=''){
 
 export function preferenceSummary(constraints,language='zh') {
  const {hard={},strong={},soft={},pace}=constraints||{};
- const labels=[hard.directFlightRequired?['只看直飞','Direct only']:strong.directFlightPreferred?['直飞优先','Prefer direct']:null,hard.avoidOvernightFlights?['不要红眼','No red-eyes']:strong.avoidOvernightFlightsPreferred?['尽量不坐红眼','Prefer no red-eyes']:null,pace==='relaxed'?['慢节奏','Slow pace']:null,soft.localFood?['当地美食','Local food']:null,strong.centralLocationPreferred?['住市中心','Central stay']:null].filter(Boolean);
- return labels.map(pair=>pair[language==='zh'?0:1]).slice(0,3).join(' · ');
+ const keys=[hard.transportModeRequired==='train'?'trainOnly':hard.transportModeRequired==='self_drive'?'selfDriveOnly':hard.transportModeRequired==='flight'&&!hard.directFlightRequired?'flightOnly':strong.trainPreferred?'trainPreferred':strong.selfDrivePreferred?'selfDrivePreferred':null,hard.directFlightRequired?'directFlightRequired':strong.directFlightPreferred?'directFlightPreferred':null,hard.avoidOvernightFlights?'avoidOvernightFlights':strong.avoidOvernightFlightsPreferred?'avoidOvernightFlightsPreferred':null,pace==='relaxed'?'paceRelaxed':null,soft.localFood?'localFood':null,strong.centralLocationPreferred?'centralLocationPreferred':null].filter(Boolean);
+ return keys.slice(0,3).map(key=>displayLabel(key,language)).join(' · ');
 }

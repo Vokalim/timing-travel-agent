@@ -1,0 +1,9 @@
+# One-stop trip planning
+
+`planTransportOptions` returns three `TransportOption` records: `flight`, `train`, and `self_drive`. Each record separates `suitability` and `suitabilityScore` from `verification`. The route-profile registry covers known nearby and regional city pairs, with destination scenery and trip duration as additional signals; it does not estimate distance from a universal cutoff. Explicit mode restrictions filter recommendations, while preferred modes change deterministic suitability and destination ranking. Existing Duffel verification remains the flight data source in Live Mode. Train fare, train schedule, self-drive route time, and tolls are always `null` until a real provider exists.
+
+`buildTripExperience` combines independent Transport, Stay, and Itinerary modules once a destination is selected. It does not require flight verification. `PlanningStayRecommendation` suggests area types from destination scenery and user constraints, with hotel inventory, price, name, rating, and availability all unset. `PlanningItinerary` creates a flexible day outline from trip duration, intents, pace, stay-area guidance, transport preference, and the provisional travel window. It does not assert venue hours or bookings.
+
+The Trip UI presents Timing, Transport, Stay, and Itinerary in that order. Discovery and Trip heroes use a maximum of two existing local editorial images, with no generated or external imagery. Demo flight/hotel price comparisons remain visibly labeled Demo; Live flight failure never inserts a mock flight, while Stay and Itinerary remain accessible.
+
+Limitations: rail fares and schedules, road routing and tolls, and live hotel inventory need separate providers. Route suitability is a bounded catalog heuristic, not a claim that a specific train or drivable route is available. Area and itinerary guidance is a planning outline, not a verified booking or attraction schedule.
