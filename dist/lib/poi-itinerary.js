@@ -9,6 +9,15 @@ const affinity=(place,intents,soft)=>intents.includes(place.category)?5:soft.loc
 const routeMinutes=(matrix,from,to)=>matrix?.[from]?.[to]?.durationMinutes??matrix?.[`${from}|${to}`]?.durationMinutes??null;
 const routeDistance=(matrix,from,to)=>matrix?.[from]?.[to]?.distanceMeters??matrix?.[`${from}|${to}`]?.distanceMeters??null;
 const afterLunch=(start,length)=>start<13*60+30&&start+length>12*60?13*60+30:start;
+const planningTemplates=[
+ {zh:'抵达与熟悉周边',en:'Arrival and neighborhood orientation',category:'culture',areaKey:'central'},
+ {zh:'城市经典区域',en:'Core city area',category:'culture',areaKey:'central'},
+ {zh:'当地风味时段',en:'Local food stop',category:'food',areaKey:'central'},
+ {zh:'自然风景方向',en:'Nature and scenery',category:'nature',areaKey:'scenic'},
+ {zh:'本地街区漫步',en:'Local neighborhood walk',category:'culture',areaKey:'local'},
+ {zh:'自由探索与休息',en:'Flexible exploration and rest',category:'relaxation',areaKey:'local'}
+];
+const planningActivity=(day,slot,pace)=>{const template=planningTemplates[(day-1+slot)%planningTemplates.length],id=`plan-${day}-${slot+1}`,start=startMinutes[pace]+slot*(visitMinutes[pace]+breakMinutes[pace]);return {id,placeId:id,place:{id,names:{zh:template.zh,en:template.en},category:template.category,areaKey:template.areaKey,coordinates:null,openingHours:null,source:'planning_template'},startTime:clock(start),endTime:clock(start+visitMinutes[pace]),openingHoursState:'unverified',routeState:'unverified',travelMinutes:null,travelDistanceMeters:null};};
 
 export function placeOpenAt(place,dayDate,start,end){
  const hours=place.openingHours;if(!hours)return null;
@@ -18,8 +27,16 @@ export function placeOpenAt(place,dayDate,start,end){
  return windows.some(window=>{const open=window.openMinutes??(window.open?Number(window.open.slice(0,2))*60+Number(window.open.slice(3,5)):null),close=window.closeMinutes??(window.close?Number(window.close.slice(0,2))*60+Number(window.close.slice(3,5)):null);return open!=null&&close!=null&&start>=open&&end<=close;});
 }
 
-export function buildPoiItinerary({places=[],nights=5,pace='balanced',intents=[],soft={},dates=[],routeMatrix=null,stayAreaKeys=[]}={}){
+export function buildPoiItinerary({places=[],nights=5,pace='balanced',intents=[],soft={},dates=[],routeMatrix=null,stayAreaKeys=[],spendingOrientation='value'}={}){
  const validPace=paceLimits[pace]?pace:'balanced',pool=unique(places),days=[],used=new Set();
+ if(!pool.length){
+  const count={relaxed:2,balanced:3,intensive:5,deep_dive:3}[validPace];
+  for(let index=0;index<Math.min(15,Math.max(1,nights));index++){
+   const activities=Array.from({length:count},(_,slot)=>planningActivity(index+1,slot,validPace));
+   days.push({day:index+1,date:dates[index]||null,theme:intents[0]||activities[0].place.category,areaKey:activities[0].place.areaKey,activities,labels:{zh:index===0?'抵达 · 基础体验':`${activities[0].place.names.zh} · 可继续修改`,en:index===0?'Arrival · first look':`${activities[0].place.names.en} · editable`},routeState:'unverified',routeDistanceMeters:null,routeDurationMinutes:null});
+  }
+  return {status:'planning_skeleton',days,pace:validPace,placeSource:'planning_template',availablePlaces:[]};
+ }
  const fraction={relaxed:.65,balanced:.85,intensive:1,deep_dive:.75}[validPace];
  const targetTotal=nights===1?pool.length:Math.max(0,Math.round(pool.length*fraction));
  const focus=validPace==='deep_dive'?[...new Set(intents.filter(intent=>pool.some(place=>place.category===intent)))].slice(0,1):[];
@@ -30,7 +47,7 @@ export function buildPoiItinerary({places=[],nights=5,pace='balanced',intents=[]
    const ranked=pool.filter(place=>!used.has(place.id)).map(place=>{
     const travel=previous?routeMinutes(routeMatrix,previous.id,place.id):null;
     const distance=previous?routeDistance(routeMatrix,previous.id,place.id):null;
-    const areaBonus=previous?.areaKey===place.areaKey?3:stayAreaKeys.includes(place.areaKey)?1:0;
+    const areaBonus=previous?.areaKey===place.areaKey?(spendingOrientation==='comfort'?6:3):stayAreaKeys.includes(place.areaKey)?(spendingOrientation==='comfort'?3:1):0;
     const focusBonus=focus.includes(place.category)?8:0;
     const score=affinity(place,intents,soft)+focusBonus+areaBonus-(travel==null?0:travel/35)-(distance==null?0:distance/6000);
     return {place,travel,score};
@@ -46,6 +63,9 @@ export function buildPoiItinerary({places=[],nights=5,pace='balanced',intents=[]
    activities.push({id:`day-${index+1}-${place.id}`,placeId:place.id,place,startTime:clock(start),endTime:clock(end),openingHoursState:placeOpenAt(place,date,start,end)===null?'unverified':'checked',routeState:travel==null?'unverified':'verified',travelMinutes:travel,travelDistanceMeters:previous?routeDistance(routeMatrix,previous.id,place.id):null});
    used.add(place.id);previous=place;minute=end+breakMinutes[validPace];
   }
+  // A sparse curated catalog must not produce empty or half-built days. Fill
+  // the remaining pace slots with clearly unverified planning directions.
+  while(activities.length<paceLimits[validPace])activities.push(planningActivity(index+1,activities.length,validPace));
   const dominantArea=activities.length?activities.reduce((counts,activity)=>(counts[activity.place.areaKey]=(counts[activity.place.areaKey]||0)+1,counts),{}):{};
   const areaKey=Object.entries(dominantArea).sort((a,b)=>b[1]-a[1])[0]?.[0]||null;
   const legs=activities.slice(1),verified=legs.length>0&&legs.every(activity=>activity.travelMinutes!=null&&activity.travelDistanceMeters!=null);

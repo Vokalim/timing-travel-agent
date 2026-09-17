@@ -18,12 +18,13 @@ export function revisedTripDates(trip,window,selection,{departure,returnDate}={}
 }
 
 export class TripWorkspaceSession {
- constructor({trip,plan=null,candidate=null,flightVerification={status:'not_checked',source:null},pace=null}={}){
+ constructor({trip,plan=null,candidate=null,flightVerification={status:'not_checked',source:null},pace=null,spendingOrientation=null}={}){
   this.trip=trip;this.plan=plan||prepareExploration(trip);this.candidate=candidate;this.flightVerification=flightVerification;
-  this.pace=pace||trip.constraints?.pace||'balanced';this.experience=this.build();
+  this.pace=pace||trip.constraints?.pace||'balanced';this.spendingOrientation=spendingOrientation||trip.spendingOrientation||'value';this.experience=this.build();
  }
- build(itineraryOverride=null){return buildTripExperience({trip:this.trip,plan:this.plan,candidate:this.candidate,flightVerification:this.flightVerification,pace:this.pace,itineraryOverride});}
+ build(itineraryOverride=null){return buildTripExperience({trip:{...this.trip,spendingOrientation:this.spendingOrientation},plan:this.plan,candidate:this.candidate,flightVerification:this.flightVerification,pace:this.pace,spendingOrientation:this.spendingOrientation,itineraryOverride});}
  changePace(pace){if(!['relaxed','balanced','intensive','deep_dive'].includes(pace))throw new Error('Unknown travel pace.');this.pace=pace;this.experience=this.build();return this.experience;}
+ changeSpendingOrientation(value){if(!['value','comfort'].includes(value))throw new Error('Unknown spending orientation.');this.spendingOrientation=value;this.trip={...this.trip,spendingOrientation:value};this.experience=this.build();return this.experience;}
  changeDuration(nights){if(!Number.isInteger(nights)||nights<1||nights>30)throw new Error('Choose 1–30 nights.');this.trip={...this.trip,nights};this.plan=prepareExploration(this.trip);this.flightVerification={status:'not_checked',source:this.flightVerification.source};this.experience=this.build();return this.experience;}
  changeDates(selection,custom){this.trip=revisedTripDates(this.trip,this.plan.windows[0],selection,custom);this.plan=prepareExploration(this.trip);this.flightVerification={status:'not_checked',source:this.flightVerification.source};this.experience=this.build();return this.experience;}
  removeActivity(day,activityId){this.experience={...this.experience,itinerary:replaceDayActivity(this.experience.itinerary,day,activityId)};return this.experience;}
@@ -33,7 +34,7 @@ export class TripWorkspaceSession {
   if(!alternative)return this.experience;
   this.experience={...this.experience,itinerary:replaceDayActivity(this.experience.itinerary,day,activityId,{...old,id:`day-${day}-${alternative.id}`,placeId:alternative.id,place:alternative,openingHoursState:'unverified',routeState:'unverified',travelMinutes:null})};return this.experience;
  }
- addWish(day,name){const trimmed=String(name||'').trim();if(!trimmed)return this.experience;const id=`wish-${Date.now()}`;
+ addWish(day,name){const trimmed=String(name||'').trim();if(!trimmed)return this.experience;const id=`wish-${day}-${this.experience.itinerary.days.flatMap(item=>item.activities).filter(activity=>activity.place.source==='user').length+1}`;
   this.experience={...this.experience,itinerary:{...this.experience.itinerary,days:this.experience.itinerary.days.map(item=>item.day!==day?item:{...item,activities:[...item.activities,{id,placeId:id,place:{id,names:{zh:trimmed,en:trimmed},areaKey:null,category:'wish',source:'user',openingHours:null},startTime:'--:--',endTime:'--:--',openingHoursState:'unverified',routeState:'unverified',travelMinutes:null}],routeState:'unverified'})}};
   return this.experience;
  }

@@ -20,7 +20,7 @@ test('real index Explore button uses the app entry and successful preference API
   assert.equal(exploreTags.length,1);
   assert.match(exploreTags[0],/\btype="button"/);
   assert.match(html,/<script\b[^>]*\btype="module"[^>]*\bsrc="\/app\.js"/);
-  assert.match(app,/setupTripInput\([\s\S]*,preferenceParser\)/);
+ assert.match(app,/setupTripInput\([\s\S]*,completePlanParser\)/);
   const fields=Object.fromEntries(['origin','destination','start','end','nights','flightBudget','hotelBudget','rating','notes'].map(name=>[name,new Element({name})]));
   const form=new Element();form.elements={namedItem:name=>fields[name]};
   const input=new Element({value:'From Shanghai to a beach for 5 days.'});

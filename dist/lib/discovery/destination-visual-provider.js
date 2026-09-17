@@ -17,6 +17,13 @@ const categoryVisuals={
  east_asian_urban:asset('east-asian-urban','Illustrative East Asian city travel mood'),
  east_asian_historic:asset('east-asian-historic','Illustrative East Asian historic travel mood')
 };
+const categoryScenic={
+ coastal:asset('historic','Illustrative coastal-town travel mood'),tropical:asset('east-asian-urban','Illustrative tropical-city travel mood'),
+ mountain:asset('winter-forest','Illustrative mountain forest mood'),winter:{src:'/assets/journey-landscape.png',description:'Illustrative winter journey mood',kind:'illustration'},
+ urban:asset('historic','Illustrative historic city detail'),historic:asset('east-asian-urban','Illustrative city travel detail'),
+ grassland:{src:'/assets/journey-landscape.png',description:'Illustrative open-landscape journey mood',kind:'illustration'},
+ desert:asset('historic','Illustrative historic travel detail'),east_asian_urban:asset('east-asian-historic','Illustrative East Asian historic detail'),east_asian_historic:asset('east-asian-urban','Illustrative East Asian city detail')
+};
 const globalFallback={src:'/assets/journey-landscape.png',description:'Illustrative journey landscape without a named destination',kind:'illustration'};
 export class DestinationVisualProvider { getVisual(){throw new Error('Implement DestinationVisualProvider.getVisual(destination).');} }
 export class LocalDestinationVisualProvider extends DestinationVisualProvider {
@@ -28,7 +35,7 @@ export class LocalDestinationVisualProvider extends DestinationVisualProvider {
   const region=identity.regionNames?.en,regionalVisual=regionVisuals[region];
   const category=known?categoryVisuals[regionalCategory]:null;
   const heroImages=city?.heroImages||[regionalVisual||category||globalFallback];
-  const scenicImages=city?.scenicImages||[];
+  const scenicImages=city?.scenicImages||[categoryScenic[regionalCategory]||categoryScenic[fallbackCategory]||globalFallback];
   return {destinationKey:identity.key,heroImages:heroImages.slice(0,1),scenicImages:scenicImages.slice(0,1),fallbackCategory,specificity:city?'city':regionalVisual?'region':category?'category':'global'};
  }
 }

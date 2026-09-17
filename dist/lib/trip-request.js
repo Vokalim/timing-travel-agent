@@ -17,10 +17,12 @@ export function createTripRequest(input) {
   if (currency !== DEFAULT_CURRENCY) throw new Error('Only CNY budgets are supported. Convert other currencies before searching.');
   if (input.destination != null && typeof input.destination !== 'string') throw new Error('Destination must be a place name or null.');
   const destination = input.destination?.trim() || null;
-  return {...input, currency, destination,
+  const constraints=parsePreferenceConstraints(input.notes,input.constraints);
+  const spendingOrientation=['value','comfort'].includes(input.spendingOrientation)?input.spendingOrientation:constraints.strong?.comfortPreferred?'comfort':'value';
+  return {...input, currency, destination,spendingOrientation,
     destinationState:destination ? 'provided' : 'discovery_required',
     travelIntents:normalizeTravelIntents(input.travelIntents),
-    constraints:parsePreferenceConstraints(input.notes,input.constraints)};
+    constraints};
 }
 export function requireDestination(trip) {
   if (!trip.destination?.trim()) throw new Error('Choose a destination to search. Destination discovery is not available yet.');

@@ -35,10 +35,23 @@ export function rerankDestinations(candidates,{travelIntents=[],recentIds=[],see
  }
  return selected;
 }
+
+const stableValue=value=>{
+ if(Array.isArray(value))return value.map(stableValue);
+ if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(key=>[key,stableValue(value[key])]));
+ return value??null;
+};
+export function destinationRequestKey(preferences={},mode='demo'){
+ const meaningful={mode,origin:preferences.origin||null,departureWindowText:preferences.departureWindowText||null,earliestDeparture:preferences.earliestDeparture||preferences.start||null,latestDeparture:preferences.latestDeparture||preferences.end||null,durationDays:preferences.durationDays||preferences.nights||null,totalTripBudgetCny:preferences.totalTripBudgetCny||null,flightBudgetCny:preferences.flightBudgetCny||preferences.flightBudget||null,hotelBudgetPerNightCny:preferences.hotelBudgetPerNightCny||preferences.hotelBudget||null,minimumHotelRating:preferences.minimumHotelRating||preferences.rating||null,travelIntents:[...(preferences.travelIntents||[])].sort(),domesticAllowed:preferences.domesticAllowed??null,internationalAllowed:preferences.internationalAllowed??null,hard:preferences.constraints?.hard||{},strong:preferences.constraints?.strong||{},spendingOrientation:preferences.spendingOrientation||'value'};
+ return JSON.stringify(stableValue(meaningful));
+}
 export class DestinationRecommendationSession {
- constructor({seed=0}={}){this.seed=seed;this.recentIds=[];}
- select(candidates,preferences={},limit=3){const picked=rerankDestinations(candidates,{travelIntents:preferences.travelIntents||[],recentIds:this.recentIds,seed:this.seed,limit:Math.min(limit,candidates.length)});this.recentIds=[...picked.map(keyOf),...this.recentIds].slice(0,30);return picked;}
- reset(){this.recentIds=[];}
+ constructor({seed=0}={}){this.seed=seed;this.pools=new Map();this.pages=new Map();}
+ persist(key,candidates,preferences={}){if(!this.pools.has(key))this.pools.set(key,rerankDestinations(candidates,{travelIntents:preferences.travelIntents||[],seed:this.seed,limit:candidates.length}));return this.pools.get(key);}
+ page(key,candidates,preferences={},limit=3,{advance=false}={}){const pool=this.persist(key,candidates,preferences),pageCount=Math.max(1,Math.ceil(pool.length/limit)),current=this.pages.get(key)||0,next=advance?(current+1)%pageCount:current;this.pages.set(key,next);const start=next*limit;return pool.slice(start,start+limit);}
+ select(candidates,preferences={},limit=3,{key=null}={}){return this.page(key||preferences.requestKey||'default',candidates,preferences,limit,{advance:false});}
+ next(key,candidates,preferences={},limit=3){return this.page(key,candidates,preferences,limit,{advance:true});}
+ reset(key=null){if(key){this.pools.delete(key);this.pages.delete(key);}else{this.pools.clear();this.pages.clear();}}
 }
 const safeCandidates=value=>{
   if(!Array.isArray(value)) throw new Error('Destination discovery returned no candidates.');
@@ -124,5 +137,6 @@ export async function discoverDestinations(preferences,{mode='demo',now=new Date
   const verificationCandidates=mode==='live'?rerankDestinations(preliminary.filter(candidate=>candidate.access.flightAccess.providerLookup),{travelIntents:preferences.travelIntents,recentIds,seed,limit:8}):preliminary;
   const verifyIds=new Set(verificationCandidates.map(candidate=>candidate.id));
   const ranked=await Promise.all(candidates.map(async candidate=>{const verification=verifyIds.has(candidate.id)?await verifyFlights(candidate,preferences,windows,provider,mode):{status:'not_checked',source:mode,reason:'Flight verification is pending.'},popularity=popularityProvider.getSignal(candidate),transport=transportAvailability(verification,{origin:preferences.origin,destination:candidate.city,countryOrRegion:candidate.countryOrRegion,durationDays:preferences.durationDays,constraints:preferences.constraints}),score=scoreCandidate(candidate,preferences,context,verification,popularity,transport);return {...candidate,identity:destinationIdentity(candidate),verification,transport,popularity,score,fitLabel:score>=75?'strong_fit':score>=55?'good_fit':'possible_fit',reasons:explanation(candidate,preferences,context,verification,popularity)};}));
-  return {...discovery,context,dateWindows:windows,geographyPreference,universeSupplemented:supplement.length>0,displayPreferences:{travelIntents:[...(preferences.travelIntents||[])]},candidates:rerankDestinations(ranked,{travelIntents:preferences.travelIntents,recentIds,seed})};
+  const requestKey=destinationRequestKey(preferences,mode);
+  return {...discovery,requestKey,context,dateWindows:windows,geographyPreference,universeSupplemented:supplement.length>0,displayPreferences:{travelIntents:[...(preferences.travelIntents||[])],requestKey},candidates:rerankDestinations(ranked,{travelIntents:preferences.travelIntents,recentIds,seed})};
 }

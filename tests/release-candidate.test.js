@@ -66,14 +66,14 @@ test('Chinese presentation localizes identities and enum labels without changing
 test('pace controls are real buttons and changing pace changes itinerary density',()=>{
  const trip=createTripRequest({origin:'Shanghai',destination:'Tokyo',nights:2,travelIntents:['food']});
  const session=new TripWorkspaceSession({trip});const balanced=session.experience.itinerary.days.flatMap(day=>day.activities).length;
- const html=renderTripSections(session.experience,'zh');assert.match(html,/data-trip-pace="relaxed"/);assert.match(html,/aria-pressed="true"/);assert.match(html,/data-trip-action="swap"/);
+ const html=renderTripTimingControls(session.experience,'zh')+renderTripSections(session.experience,'zh');assert.match(html,/data-trip-pace="relaxed"/);assert.match(html,/aria-pressed="true"/);assert.match(html,/data-trip-action="swap"/);
  session.changePace('intensive');assert.ok(session.experience.itinerary.days.flatMap(day=>day.activities).length>balanced);
 });
 
-test('destination refresh stays diverse and does not require another provider request',async()=>{
+test('destination result stays stable and explicit next page stays diverse without another provider request',async()=>{
  let calls=0;const service=new DemoDestinationDiscoveryService(),wrapped={discover:async(...args)=>{calls++;return service.discover(...args);}};
  const draft=await parser.parse('12月上海出发，想去海边玩5天');
  const result=await discoverDestinations({...draft.interpretation,...preferencesFrom(draft)},{now,language:'zh',discoveryService:wrapped});
- const session=new DestinationRecommendationSession({seed:7}),first=session.select(result.candidates,{travelIntents:['beach']},3),second=session.select(result.candidates,{travelIntents:['beach']},3);
- assert.equal(calls,1);assert.notDeepEqual(first.map(x=>x.id),second.map(x=>x.id));
+ const session=new DestinationRecommendationSession({seed:7}),key=result.requestKey,first=session.select(result.candidates,{travelIntents:['beach']},3,{key}),repeat=session.select(result.candidates,{travelIntents:['beach']},3,{key}),second=session.next(key,result.candidates,{travelIntents:['beach']},3);
+ assert.equal(calls,1);assert.deepEqual(first.map(x=>x.id),repeat.map(x=>x.id));assert.notDeepEqual(first.map(x=>x.id),second.map(x=>x.id));
 });

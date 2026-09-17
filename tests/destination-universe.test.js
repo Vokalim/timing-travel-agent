@@ -56,12 +56,12 @@ test('capital status is not a ranking bonus and iconic capitals do not occupy th
  assert.ok(food.candidates.find(c=>c.city==='Fukuoka')?.score>food.candidates.find(c=>c.city==='Tokyo')?.score);
 });
 
-test('session refresh deterministically avoids recently shown places without another model call',async()=>{
+test('session keeps the same page stable and explicit next page avoids repetition without another model call',async()=>{
  const result=await discover(),session=new DestinationRecommendationSession({seed:12});
- const first=session.select(result.candidates,base),second=session.select(result.candidates,base);
- assert.equal(first.length,3);assert.equal(second.length,3);assert.equal(first.filter(c=>second.includes(c)).length,0);
+ const key=result.requestKey,first=session.select(result.candidates,base,3,{key}),repeat=session.select(result.candidates,base,3,{key}),second=session.next(key,result.candidates,base,3);
+ assert.equal(first.length,3);assert.deepEqual(repeat.map(c=>c.id),first.map(c=>c.id));assert.equal(first.filter(c=>second.includes(c)).length,0);
  assert.ok(new Set(first.map(c=>c.sceneryCategory)).size>=2);
- const replay=new DestinationRecommendationSession({seed:12});assert.deepEqual(replay.select(result.candidates,base).map(c=>c.id),first.map(c=>c.id));
+ const replay=new DestinationRecommendationSession({seed:12});assert.deepEqual(replay.select(result.candidates,base,3,{key}).map(c=>c.id),first.map(c=>c.id));
  const app=await readFile(new URL('../dist/app.js',import.meta.url),'utf8');assert.match(app,/show-more-ideas[^\n]*renderDiscovery\(data,true\)/);assert.doesNotMatch(app,/show-more-ideas[^\n]*discoverDestinations/);
 });
 

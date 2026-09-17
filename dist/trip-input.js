@@ -20,6 +20,7 @@ export function setupTripInput(form,onDraftChange,parser=new FallbackPreferenceP
   const concise=preferenceSummary(parsePreferenceConstraints(fields.notes),uiLanguage);
   const tags=[...(fields.travelIntents||[]).slice(0,3).map(intent=>knownDisplayLabel(intent,uiLanguage)).filter(Boolean),concise?`${t('偏好：','Preferences: ')}${concise}`:interpretation.avoidOvernightFlights===true?t('避开红眼航班','No overnight flights'):null];
   if(tags.filter(Boolean).length){const small=document.createElement('p');small.textContent=tags.filter(Boolean).join(' · ');review.append(small);}
+  if(draft.originAssumption){const assumption=document.createElement('small');assumption.textContent=t('暂按上海出发生成基础方案 · 可修改','Starting with Shanghai as a provisional origin · editable');review.append(assumption);}
   if(draft.parserStatus==='fallback'||draft.parserStatus==='demo'){const warning=document.createElement('small');warning.textContent=t('AI 暂不可用 · 已用本地解析，请核对条件','AI unavailable · Local fallback used; please review');review.append(warning);}
   const edit=document.createElement('button');edit.type='button';edit.textContent=t('修改条件','Edit conditions');edit.addEventListener('click',()=>{const details=document.querySelector('#structured-details');if(details){details.open=true;details.scrollIntoView?.({behavior:'smooth',block:'start'});}});review.append(edit);
  };
