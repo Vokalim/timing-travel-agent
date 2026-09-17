@@ -46,7 +46,8 @@ export function renderTripSections(experience,language='zh'){
   if(option.suitability==='not_applicable')verification='';
   const flight=option.mode==='flight'&&option.quote?renderFlightDetails(option.quote,option.verification.source,language,{from:displayCity(experience.trip.origin,language),to:displayCity(experience.trip.destination,language)}):'';
   const routeAction=option.mode!=='flight'&&option.suitability!=='not_applicable'?`<a class="trip-link-action" href="${e(navigationForCountry(destinationIdentity(experience.trip.destination).countryNames.en).directionsUrl({names:{en:experience.trip.destination}}))}" target="_blank" rel="noopener noreferrer">${label(language,'查看路线','View route')}</a>`:'';
-  return `<div class="transport-row${primary?' transport-primary':''}"><div><strong>${e(title)}</strong><span>${e(fit)}</span></div><div class="transport-detail"><p>${e(verification)}</p>${flight}${routeAction}</div></div>`;
+  const stateClass=!option.allowed||option.suitability==='not_applicable'?' transport-muted':primary?' transport-primary':option.verification.status==='verified'?' transport-available':' transport-unverified';
+  return `<div class="transport-row${stateClass}"><div><strong>${e(title)}</strong><span>${e(fit)}</span></div><div class="transport-detail"><p>${e(verification)}</p>${flight}${routeAction}</div></div>`;
  }).join('');
  const areas=experience.stay.areas.map(area=>`<span>${e(area.labels[language==='zh'?'zh':'en'])}</span>`).join(' · ');
  const nav=navigationForCountry(destinationIdentity(experience.trip.destination).countryNames.en);

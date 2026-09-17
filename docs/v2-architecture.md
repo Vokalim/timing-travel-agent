@@ -1,4 +1,4 @@
-# Travel Scout V2: provider boundary
+# Timing V2: provider boundary
 
 The existing UI, mock prices, fallback parser, and deterministic decision rules are preserved. Live flight search is connected to Duffel, and natural-language trip input is connected to an LLM through local server boundaries; no hotel API has been integrated.
 

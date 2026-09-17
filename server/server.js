@@ -51,4 +51,4 @@ const server=createServer(async(request,response)=>{
 });
 
 const port=Number(process.env.PORT || 4173);
-server.listen(port,'0.0.0.0',()=>console.log(`Travel Scout: http://localhost:${port}`));
+server.listen(port,'0.0.0.0',()=>console.log(`Timing: http://localhost:${port}`));

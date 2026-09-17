@@ -1,6 +1,6 @@
 export class LocationResolutionError extends Error {
   constructor(input) {
-    super(`Location “${String(input || '').trim()}” is not supported yet. Try a supported city or airport name; Travel Scout will not guess.`);
+    super(`Location “${String(input || '').trim()}” is not supported yet. Try a supported city or airport name; Timing will not guess.`);
     this.name = 'LocationResolutionError';
     this.code = 'LOCATION_UNRESOLVED';
     this.status = 422;

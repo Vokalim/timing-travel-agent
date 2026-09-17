@@ -1,6 +1,6 @@
 # Duffel flight integration
 
-Travel Scout's browser calls `POST /api/travel/flights/search`. The local Node server resolves the entered city or airport to a Duffel-compatible IATA city/airport code, creates a v2 round-trip offer request for one adult, chooses low-cost offers, and normalizes them into the existing `FlightQuote` contract. The server reads `DUFFEL_ACCESS_TOKEN`; the browser never receives it.
+Timing's browser calls `POST /api/travel/flights/search`. The local Node server resolves the entered city or airport to a Duffel-compatible IATA city/airport code, creates a v2 round-trip offer request for one adult, chooses low-cost offers, and normalizes them into the existing `FlightQuote` contract. The server reads `DUFFEL_ACCESS_TOKEN`; the browser never receives it.
 
 The implemented request uses Duffel's current offer-request flow: two slices (outbound and return), one adult passenger, economy cabin, at most one connection, and returned offers. The normalized quote retains both directions' dates/times, carrier data, segments and overnight evidence, total amount, original currency, source mode, and expiry.
 
@@ -26,7 +26,7 @@ The `.env` file is ignored by Git. Never add the token under `dist/`, to client 
 
 ## Currency boundary
 
-Duffel returns `total_amount` and `total_currency` in the organisation's configured billing currency. Travel Scout's deterministic engine accepts CNY only. A CNY offer becomes a scorable `price`; a foreign-currency offer keeps `originalPrice` and `originalCurrency`, sets `currencyConversionRequired`, and is withheld from scoring. If a response has no CNY offer, Live Mode reports that conversion is required. No exchange rate is invented.
+Duffel returns `total_amount` and `total_currency` in the organisation's configured billing currency. Timing's deterministic engine accepts CNY only. A CNY offer becomes a scorable `price`; a foreign-currency offer keeps `originalPrice` and `originalCurrency`, sets `currencyConversionRequired`, and is withheld from scoring. If a response has no CNY offer, Live Mode reports that conversion is required. No exchange rate is invented.
 
 ## Failure behavior
 

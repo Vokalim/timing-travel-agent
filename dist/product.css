@@ -79,3 +79,16 @@
 .trip-action-note{display:block;margin-top:7px;color:#758677;font-size:11px}
 @media(max-width:760px){.trip-hero{grid-template-columns:1fr;gap:0}.trip-hero-copy{padding:30px 26px 16px}.trip-hero-images{height:220px}.transport-row{align-items:flex-start;flex-direction:column;gap:4px}.transport-row>div{display:block}.transport-row strong{display:inline-block;margin-right:12px}.itinerary-days li{grid-template-columns:60px 1fr}}
 @media(max-width:760px){.ask-state{min-height:0;padding:72px 18px 25px}.ask-box{padding:20px}.discovery-feature{grid-template-columns:1fr}.feature-art{min-height:220px}.feature-art .secondary-image{width:34%;height:45%}.feature-copy{padding:30px}.idea-list{grid-template-columns:1fr;gap:4px}.site-header{padding-left:18px;padding-right:18px}.source-control #source-indicator{display:none}}
+
+/* Release-candidate interaction and responsive polish. */
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:3px solid #c59245;outline-offset:3px}
+button:active{transform:translateY(1px)}
+button:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.transport-primary{background:linear-gradient(90deg,#edf3e9 0,transparent 72%)}
+.transport-available{opacity:.9}.transport-unverified{opacity:.72}.transport-muted{opacity:.48}.transport-muted .trip-link-action{display:none}
+
+@media(max-width:760px){
+ .table-wrap{overflow:visible}.table-wrap table,.table-wrap tbody,.table-wrap tr,.table-wrap td{display:block;width:100%}.table-wrap thead{display:none}.table-wrap tr{padding:12px 0;border-bottom:1px solid var(--line)}.table-wrap td{display:flex;justify-content:space-between;gap:18px;padding:7px 2px;border:0;white-space:normal;text-align:right}.table-wrap td:before{content:attr(data-label);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em;text-align:left}.table-wrap td small{max-width:62%}.row-button{min-height:34px}.chart{overflow:hidden;padding-inline:3px}.bar-col{min-width:0}
+ .view-trip,.choose-destination,#submit,.ask-actions button{min-height:44px}
+ .transport-detail{text-align:left;width:100%}.flight-summary{justify-content:flex-start}.itinerary-day-head{align-items:flex-start;flex-wrap:wrap}.itinerary-day-head>strong{min-width:55%}.trip-activity{grid-template-columns:72px 1fr;margin-left:7px;padding-left:12px}.trip-activity-actions a,.trip-activity-actions button{min-height:36px;padding:8px}.trip-inline-editor input,.trip-wish-editor input{max-width:100%}
+}

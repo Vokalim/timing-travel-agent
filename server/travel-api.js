@@ -8,7 +8,7 @@ function validateSearch(body) {
     error.code='INVALID_REQUEST'; error.status=400; throw error;
   }
   if (body.currency!=='CNY' || body.adults!==1) {
-    const error=new Error('Travel Scout currently supports one adult and CNY-normalized results.');
+    const error=new Error('Timing currently supports one adult and CNY-normalized results.');
     error.code='INVALID_REQUEST'; error.status=400; throw error;
   }
   return body;

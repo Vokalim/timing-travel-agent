@@ -24,7 +24,6 @@ export function setupTripInput(form,onDraftChange,parser=new FallbackPreferenceP
   const edit=document.createElement('button');edit.type='button';edit.textContent=t('修改条件','Edit conditions');edit.addEventListener('click',()=>{const details=document.querySelector('#structured-details');if(details){details.open=true;details.scrollIntoView?.({behavior:'smooth',block:'start'});}});review.append(edit);
  };
  button.addEventListener('click',async()=>{
-  console.info('[Timing] Explore click received');
   if(!input.value.trim()){review.hidden=false;review.textContent=t('请先描述你的旅行，当前条件没有改变。','Describe your trip first. Your form has not changed.');return;}
   button.disabled=true;status.hidden=false;
   try{const draft=await parser.parse(input.value);lastDraft=draft;for(const key of [...Object.keys(tripFields),'notes']){const field=form.elements.namedItem(key);field.value=draft.fields[key]??'';field.classList.toggle('needs-confirmation',key==='origin'&&draft.needsConfirmation.includes(key));field.setAttribute('aria-describedby','trip-review');}const total=form.elements.namedItem('totalTripBudgetCny');if(total)total.value=draft.fields.totalTripBudgetCny??draft.interpretation?.totalTripBudgetCny??'';travelIntents.value=draft.fields.travelIntents.join(',');renderReview(draft);onDraftChange(draft);}

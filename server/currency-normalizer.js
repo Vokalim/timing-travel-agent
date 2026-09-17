@@ -2,7 +2,7 @@ export class CurrencyConversionRequiredError extends Error {
   constructor(unconverted) {
     const first = unconverted[0];
     const currencies = [...new Set(unconverted.map(q=>q.originalCurrency))].join(', ');
-    super(`Duffel returned flight prices in ${currencies}, not CNY. Currency conversion is required before Travel Scout can score them.${first ? ` Lowest preserved amount: ${first.originalCurrency} ${first.originalPrice}.` : ''}`);
+    super(`Duffel returned flight prices in ${currencies}, not CNY. Currency conversion is required before Timing can score them.${first ? ` Lowest preserved amount: ${first.originalCurrency} ${first.originalPrice}.` : ''}`);
     this.name = 'CurrencyConversionRequiredError';
     this.code = 'CURRENCY_CONVERSION_REQUIRED';
     this.status = 422;

@@ -32,8 +32,8 @@ export class DemoPreferenceParser extends PreferenceParser {
     const intentPatterns = {
       festive:/\b(?:christmas|festive|holiday markets?)\b|圣诞|聖誕|节日氛围|節日氛圍/i, beach:/\bbeach(?:es)?\b|海边|海邊|海滩|海灘|沙滩|沙灘/i,
       relaxation:/\b(?:relax|relaxation|spa|wellness)\b|放松|放鬆|休闲|休閒/i, hiking:/\b(?:hike|hiking|trekking)\b|徒步|登山/i,
-      food:/\b(?:food|culinary|cuisine|restaurants?)\b|美食|吃吃喝喝/i, culture:/\b(?:culture|cultural|museums?|history|heritage)\b|文化|博物馆|博物館|历史|歷史/i,
-      nature:/\b(?:nature|wildlife|scenery|outdoors?)\b|自然|风景|風景/i, snow_winter:/\b(?:snow|winter|skiing?)\b|雪|冬季|滑雪/i,
+      food:/\b(?:food|culinary|cuisine|restaurants?)\b|美食|吃吃喝喝|好吃的|寻味|尋味/i, culture:/\b(?:culture|cultural|museums?|history|heritage)\b|文化|博物馆|博物館|历史|歷史/i,
+      nature:/\b(?:nature|wildlife|scenery|outdoors?)\b|自然|风景|風景|看山|山里|山野/i, snow_winter:/\b(?:snow|winter|skiing?)\b|雪|冬季|滑雪/i,
       shopping:/\b(?:shopping|shops?)\b|购物|購物/i, family:/\b(?:family|kids?|children)\b|亲子|親子|家庭/i,
       romantic:/\b(?:romantic|romance|honeymoon)\b|浪漫|蜜月/i
     };
@@ -45,14 +45,16 @@ export class DemoPreferenceParser extends PreferenceParser {
       if (!/^(?:a |an |the )?(?:beach|somewhere|someplace|warm place|place to hike|christmas destination)$/i.test(proposed)) fields.destination=proposed;
     }
     if (!fields.origin) {
-      const found=[['上海','Shanghai'],['北京','Beijing'],['广州','Guangzhou'],['深圳','Shenzhen'],['成都','Chengdu'],['重庆','Chongqing'],['长沙','Changsha'],['厦门','Xiamen'],['三亚','Sanya'],['昆明','Kunming'],['大理','Dali'],['丽江','Lijiang'],['桂林','Guilin'],['西安',"Xi'an"],['杭州','Hangzhou'],['南京','Nanjing'],['青岛','Qingdao'],['哈尔滨','Harbin'],['香港','Hong Kong']].find(([name])=>text.includes(name));
+      const found=[['上海','Shanghai'],['北京','Beijing'],['广州','Guangzhou'],['深圳','Shenzhen'],['成都','Chengdu'],['重庆','Chongqing'],['长沙','Changsha'],['南昌','Nanchang'],['厦门','Xiamen'],['三亚','Sanya'],['昆明','Kunming'],['大理','Dali'],['丽江','Lijiang'],['桂林','Guilin'],['西安',"Xi'an"],['杭州','Hangzhou'],['南京','Nanjing'],['青岛','Qingdao'],['哈尔滨','Harbin'],['香港','Hong Kong']].find(([name])=>text.includes(name));
       if(found)fields.origin=found[1];
     }
     if (!fields.destination) {
       const found=[['东京','Tokyo'],['東京','Tokyo'],['大阪','Osaka'],['首尔','Seoul'],['首爾','Seoul'],['新加坡','Singapore'],['曼谷','Bangkok'],['伦敦','London'],['巴黎','Paris'],['北京','Beijing'],['广州','Guangzhou'],['深圳','Shenzhen'],['成都','Chengdu'],['重庆','Chongqing'],['长沙','Changsha'],['厦门','Xiamen'],['三亚','Sanya'],['昆明','Kunming'],['大理','Dali'],['丽江','Lijiang'],['桂林','Guilin'],['西安',"Xi'an"],['杭州','Hangzhou'],['南京','Nanjing'],['青岛','Qingdao'],['哈尔滨','Harbin']].find(([name])=>new RegExp(`(?:去|到)${name}`).test(text));
       if(found&&!new RegExp(`(?:不要|排除|避开|避開)(?:去|到)?${found[0]}`).test(text))fields.destination=found[1];
     }
-    fields.nights = unique(text,/\b(\d+)\s+nights?\b/gi, Number);
+    const durationRange=text.match(/(\d+)\s*(?:-|~|–|到|至)\s*(\d+)\s*(?:天|晚|days?|nights?)/i);
+    if(durationRange)fields.nights=Math.round((Number(durationRange[1])+Number(durationRange[2]))/2);
+    if (!fields.nights) fields.nights = unique(text,/\b(\d+)\s+nights?\b/gi, Number);
     if (!fields.nights) fields.nights=unique(text,/(\d+)\s*(?:天|晚)/g,Number);
     const cny = !/(?:[$€£]|\b(?:USD|EUR|GBP|JPY|CAD|AUD|HKD)\b)/i.test(text);
     if (cny) {
@@ -95,7 +97,7 @@ export class DemoPreferenceParser extends PreferenceParser {
     const hasConstraints=Object.values(constraints.hard).some(value=>Array.isArray(value)?value.length:Boolean(value))||Object.values(constraints.strong).some(Boolean)||Object.values(constraints.soft).some(Boolean)||constraints.pace;
     fields.notes=hasConstraints&&!(notes.length===1&&notes[0]==='Prioritize comfort'&&Object.keys(constraints.strong).length===1)?text:notes.join('. ');
     for (const key of Object.keys(fields)) if (fields[key] === undefined) delete fields[key];
-    const broadMonth=text.match(/(?:^|\D)(1[0-2]|0?[1-9])\s*月|\b(?:January|February|March|April|May|June|July|August|September|October|November|December|next month|this weekend|Mid-Autumn Festival|National Day|Spring Festival)\b|中秋|国庆|國慶|春节|春節|下个月|下個月|这个周末|這個週末/i);if(!dateHint&&broadMonth)dateHint=broadMonth[0].trim();
+    const broadMonth=text.match(/(?:^|\D)(1[0-2]|0?[1-9])\s*月|\b(?:January|February|March|April|May|June|July|August|September|October|November|December|next month|this weekend|Mid-Autumn Festival|National Day|Spring Festival)\b|中秋|国庆|國慶|春节|春節|下个月|下個月|这个周末|這個週末|周末|週末/i);if(!dateHint&&broadMonth)dateHint=broadMonth[0].trim();
     const domesticOnly=/只(?:想|去|看)?国内|仅限国内|domestic only/i.test(text),internationalOnly=/只(?:想|去|看)?出境|只(?:想|去|看)?国外|仅限出境|international only/i.test(text);
     const interpretation={origin:fields.origin||null,destination:fields.destination||null,destinationState:fields.destination?'provided':'discovery_required',earliestDeparture:fields.start||null,latestDeparture:fields.end||null,departureWindowText:dateHint||null,durationDays:fields.nights||null,totalTripBudgetCny:fields.totalTripBudgetCny||null,flightBudgetCny:fields.flightBudget||null,hotelBudgetPerNightCny:fields.hotelBudget||null,minimumHotelRating:fields.rating||null,avoidOvernightFlights:/不要红眼|避免红眼|avoid (?:overnight|red[- ]?eye)/i.test(text)?true:null,travelIntents:fields.travelIntents,domesticAllowed:internationalOnly?false:domesticOnly?true:null,internationalAllowed:domesticOnly?false:internationalOnly?true:null,pace:null,preferences:[]};
     return {fields, needsConfirmation:Object.keys(tripFields).filter(key=>fields[key]===undefined), warnings, dateHint,interpretation,

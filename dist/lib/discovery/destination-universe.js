@@ -6,6 +6,7 @@ Shanghai|上海|CN|Shanghai|上海|city|food,culture,shopping|Shanghai|Shanghai|
 Chengdu|成都|CN|Sichuan|四川|city|food,culture,relaxation,nature|Chengdu|Chengdu|urban|iconic
 Chongqing|重庆|CN|Chongqing|重庆|city|food,culture,nature|Chongqing|Chongqing|urban|iconic
 Changsha|长沙|CN|Hunan|湖南|city|food,culture|Changsha|Changsha|urban|established
+Nanchang|南昌|CN|Jiangxi|江西|city|food,culture,nature|Nanchang|Nanchang|urban|established
 Xiamen|厦门|CN|Fujian|福建|city|beach,food,relaxation,culture|Xiamen|Xiamen|coastal|established
 Sanya|三亚|CN|Hainan|海南|city|beach,relaxation,nature|Sanya|Sanya|tropical|established
 Kunming|昆明|CN|Yunnan|云南|city|nature,food,relaxation|Kunming|Kunming|mountain|established

@@ -10,7 +10,7 @@ export function parsePreferenceConstraints(text='', existing={}) {
  if(direct&&!has(/do not want (?:non.?stop|direct)|don['’]t want (?:non.?stop|direct)|不要直飞|不坐直飞/)){if(has(/只看直飞|只要直飞|必须直飞|必須直飛|仅限直飞|直飞限定|direct flights? only|must (?:be )?(?:non.?stop|direct)|no connections|^non.?stop\b/)){hard.directFlightRequired=true;hard.transportModeRequired='flight';}
  else strong.directFlightPreferred=true;}
  if(has(/只坐高铁|只坐高鐵|只看高铁|只看高鐵|必须坐高铁|必須坐高鐵|train only|rail only|only (?:by )?(?:train|rail)/))hard.transportModeRequired='train';
- else if(has(/最好(?:坐|乘)?高铁|最好(?:坐|乘)?高鐵|高铁优先|高鐵優先|prefer (?:the )?(?:train|rail)|train preferred/))strong.trainPreferred=true;
+ else if(has(/想(?:坐|乘)?高铁|想(?:坐|乘)?高鐵|最好(?:坐|乘)?高铁|最好(?:坐|乘)?高鐵|高铁优先|高鐵優先|prefer (?:the )?(?:train|rail)|train preferred/))strong.trainPreferred=true;
  if(has(/只自驾|只自駕|必须自驾|必須自駕|self.drive only|drive only/))hard.transportModeRequired='self_drive';
  else if(has(/想自驾|想自駕|最好自驾|最好自駕|自驾优先|自駕優先|prefer (?:to )?drive|road trip|self.drive preferred/))strong.selfDrivePreferred=true;
  if(has(/只坐飞机|只坐飛機|只看飞机|只看飛機|flight only|fly only|only (?:by )?(?:plane|air)/))hard.transportModeRequired='flight';
@@ -28,11 +28,11 @@ export function parsePreferenceConstraints(text='', existing={}) {
  if(has(/只去国外|只看国外|仅限出境|international only/))hard.geography='international';
  const exclusions=[...(t.matchAll(/(?:不要去|排除|避开|避開|exclude|not (?:to|in))\s*([\p{L}][\p{L}\s'-]{1,24})/gu))].flatMap(m=>m[1].trim().replace(/[，。,;.!].*$/,'').split(/\s+and\s+|\s*和\s*/i));
  hard.excludedDestinations=[...new Set([...(hard.excludedDestinations||[]),...exclusions])];
- const strongPatterns={shorterFlightPreferred:/飞行时间短|短航程|shorter flights?|short flight time/,daytimeFlightsPreferred:/白天航班|白天飞|daytime flights?/,fewerTransfersPreferred:/少中转|少轉機|fewer transfers?|fewer stops?/,comfortPreferred:/舒适|舒適|comfort|豪华|luxury/,centralLocationPreferred:/市中心|中心地段|central location|city cent(?:er|re)/,seasidePreferred:/海边|海邊|seaside|coast|beach/,mountainPreferred:/山景|山里|mountains?/,naturePreferred:/亲近自然|親近自然|prefer nature/,higherRatedHotelsPreferred:/高评分酒店|高評分酒店|highly rated hotels?/,convenientTransportPreferred:/交通方便|交通便利|convenient transport|easy transit/};
+ const strongPatterns={shorterFlightPreferred:/飞行时间短|短航程|shorter flights?|short flight time/,daytimeFlightsPreferred:/白天航班|白天飞|daytime flights?/,fewerTransfersPreferred:/少中转|少轉機|fewer transfers?|fewer stops?/,comfortPreferred:/舒适|舒適|comfort|豪华|luxury/,centralLocationPreferred:/市中心|中心地段|central location|city cent(?:er|re)/,seasidePreferred:/海边|海邊|seaside|coast|beach/,mountainPreferred:/山景|山里|看山|山野|mountains?/,naturePreferred:/亲近自然|親近自然|prefer nature/,higherRatedHotelsPreferred:/高评分酒店|高評分酒店|highly rated hotels?/,convenientTransportPreferred:/交通方便|交通便利|convenient transport|easy transit/};
  for(const [key,re] of Object.entries(strongPatterns))if(has(re))strong[key]=true;
  const softPatterns={localFood:/当地特色|當地特色|美食|food|local cuisine/,shopping:/购物|購物|shopping/,photography:/摄影|攝影|拍照|photography/,nightlife:/夜生活|nightlife/,relaxation:/放松|放空|relax/,slowTravel:/慢旅行|慢节奏|慢節奏|slow travel/,culture:/文化|culture/,nature:/自然|nature/,family:/亲子|親子|family/,romantic:/浪漫|romantic/,quietAreas:/安静|安靜|quiet/,lessCrowded:/人少|避开人群|避開人群|less crowded/};
  for(const [key,re] of Object.entries(softPatterns))if(has(re))soft[key]=has(/特别|非常|很|最|especially|really|love|highly/)?2:1;
- const pace=has(/节奏慢|節奏慢|慢一点|慢一點|slow pace|relaxed pace/)?'relaxed':existing.pace??null;
+ const pace=has(/节奏慢|節奏慢|慢一点|慢一點|不想太赶|不要太赶|slow pace|relaxed pace|not too rushed/)?'relaxed':existing.pace??null;
  return {hard,strong,soft,pace,rawText};
 }
 
