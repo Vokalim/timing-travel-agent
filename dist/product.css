@@ -257,3 +257,42 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 @media(max-width:760px){
  .ask-photo-collage{height:330px}.ask-photo-main{width:76%;height:250px}.ask-photo-overlap{width:41%;height:132px}.ask-photo-detail{width:26%;height:95px}.itinerary-command{align-items:stretch;flex-direction:column}.itinerary-command button{align-self:flex-start}.trip-time-editor{align-items:stretch;flex-direction:column}.trip-time-editor input{max-width:none}
 }
+
+/* Focused home correction: the prompt is the center; imagery is small editorial material. */
+.ask-state{max-width:1180px;padding-top:clamp(62px,9vh,112px)}
+.ask-editorial-layout{display:block;position:relative;min-height:650px}
+.ask-editorial-copy{position:relative;z-index:3;width:min(100%,800px);margin:0 auto;padding:0}
+.ask-editorial-copy .hero-copy{max-width:720px;margin:0 auto 34px;text-align:center}
+.ask-editorial-copy .hero-copy h1{max-width:none}
+.ask-editorial-copy .hero-subtitle{max-width:620px;margin:23px auto 0}
+.ask-editorial-copy .ask-box{max-width:720px;margin:0 auto;padding:18px 22px 16px;border:1px solid rgba(111,139,118,.28);border-radius:17px;background:rgba(255,254,249,.88);box-shadow:0 18px 46px rgba(34,63,48,.08);backdrop-filter:blur(7px)}
+.ask-editorial-copy .ask-box textarea{min-height:135px}
+.ask-editorial-copy .inspiration{max-width:720px;margin:25px auto 12px;text-align:center}.ask-editorial-copy .chips{justify-content:center}
+.ask-photo-collage{position:absolute;inset:0;z-index:1;height:auto;margin:0;pointer-events:none}
+.ask-photo-main{left:0;right:auto;top:36px;width:168px;height:118px;border:5px solid #f7f5ef;border-radius:2px;box-shadow:0 13px 28px rgba(31,56,43,.14);transform:rotate(-2.4deg)}
+.ask-photo-overlap{left:auto;right:1%;top:205px;bottom:auto;width:154px;height:108px;border:5px solid #f7f5ef;box-shadow:0 13px 28px rgba(31,56,43,.13);transform:rotate(2.2deg)}
+.ask-photo-detail{left:auto;right:12%;bottom:4px;width:132px;height:94px;border:5px solid #f7f5ef;box-shadow:0 11px 24px rgba(31,56,43,.12);transform:rotate(-1.6deg)}
+.ask-route-motif{left:auto;right:4%;top:27px;width:225px;height:95px}.ask-plane-motif{left:auto;right:20%;top:70px}.ask-stamp-motif{left:2%;right:auto;top:auto;bottom:24px;width:76px;height:76px}
+
+/* One-day-at-a-time itinerary with one visual footprint, never a duplicate list. */
+.itinerary-days{display:block;margin-top:24px}
+.itinerary-day{display:block;border-top:1px solid #d7e0d5;color:#314f3b}
+.itinerary-day:last-child{border-bottom:1px solid #d7e0d5}
+.itinerary-day>summary{display:grid;grid-template-columns:78px minmax(0,1fr) 22px;gap:16px;align-items:center;padding:22px 2px;list-style:none;cursor:pointer}.itinerary-day>summary::-webkit-details-marker{display:none}
+.itinerary-day>summary>b{color:#315b43;font-size:12px;letter-spacing:.08em}.itinerary-day>summary>span{min-width:0}.itinerary-day>summary strong,.itinerary-day>summary small{display:block}.itinerary-day>summary strong{font-family:'Playfair Display','Noto Serif SC',serif;color:#234a34;font-size:21px;font-weight:500}.itinerary-day>summary small{overflow:hidden;margin-top:5px;color:#748579;font-size:12px;text-overflow:ellipsis;white-space:nowrap}.itinerary-day>summary>i{color:#6c8372;font-size:24px;font-style:normal;transition:transform .2s ease}.itinerary-day[open]>summary>i{transform:rotate(90deg)}
+.itinerary-day-panel{padding:8px 0 32px}.itinerary-day-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(280px,1fr);gap:42px;align-items:start}.itinerary-timeline{min-width:0}
+.itinerary-day-actions{display:flex;gap:20px;margin:18px 0 0 9px}.itinerary-day-actions button{padding:7px 0;border:0;border-bottom:1px solid transparent;background:transparent;color:#285b42;font-size:12px;cursor:pointer}.itinerary-day-actions button:hover{border-bottom-color:#285b42}
+.travel-footprint-map{position:sticky;top:22px;min-height:300px;padding:18px;border-radius:4px 25px 4px 4px;background:linear-gradient(145deg,#f3efdf,#e4ecdf);overflow:hidden}
+.travel-footprint-map:before,.travel-footprint-map:after{content:'';position:absolute;border:1px solid rgba(66,105,78,.1);border-radius:50%}.travel-footprint-map:before{width:210px;height:130px;left:-62px;bottom:-32px}.travel-footprint-map:after{width:145px;height:95px;right:-34px;top:28px}
+.footprint-heading{position:relative;z-index:3;display:flex;justify-content:space-between;gap:12px;align-items:baseline}.footprint-heading strong{color:#274f39;font-size:13px}.footprint-heading small{color:#75877a;font-size:9px;text-align:right}
+.footprint-canvas{position:relative;z-index:2;height:238px;margin-top:8px}.footprint-canvas svg{display:block;width:100%;height:100%;overflow:visible}.footprint-terrain{fill:none;stroke:rgba(91,126,99,.13);stroke-width:1.2}.footprint-route{fill:none;stroke:#3f7455;stroke-width:1.5;stroke-linecap:round;stroke-dasharray:2.5 4.5}
+.footprint-marker{position:absolute;left:var(--x);top:var(--y);translate:-50% -50%;display:block;padding:0;border:0;background:transparent;color:#284d39;cursor:pointer;text-align:left}.footprint-marker b{display:grid;place-items:center;width:25px;height:25px;border:3px solid #eef2e7;border-radius:50%;background:#315f45;color:#fff;font-size:10px;box-shadow:0 3px 8px rgba(24,61,40,.22)}.footprint-marker span{position:absolute;left:21px;top:-4px;width:max-content;max-width:105px;padding:3px 6px;border-radius:6px;background:rgba(247,246,237,.84);font-size:9px;line-height:1.2;box-shadow:0 2px 7px rgba(31,60,43,.07)}.footprint-marker.label-left span{left:auto;right:21px;text-align:right}.footprint-marker.is-start b{background:#173f2c}.footprint-marker.is-end b{background:#7d947e}.footprint-marker.is-highlighted b{scale:1.2;background:#fff;color:#1e5035;border-color:#315f45}.trip-activity.is-highlighted{background:linear-gradient(90deg,#e8f0e4,transparent 78%)}
+
+@media(max-width:960px){
+ .ask-photo-main{left:-8px;width:130px;height:92px}.ask-photo-overlap{right:-8px;width:125px;height:90px}.ask-photo-detail{right:4%;width:112px;height:82px}.ask-route-motif{right:0;width:185px}.ask-stamp-motif{left:0}
+ .itinerary-day-layout{grid-template-columns:1fr;gap:24px}.travel-footprint-map{position:relative;top:auto;min-height:260px}.footprint-canvas{height:205px}
+}
+@media(max-width:760px){
+ .ask-editorial-layout{min-height:0}.ask-photo-collage{position:absolute;height:auto}.ask-photo-main{top:-26px;left:-12px;width:92px;height:68px}.ask-photo-overlap{top:265px;right:-10px;width:86px;height:64px}.ask-photo-detail{display:none}.ask-route-motif{right:-15px;top:-22px;width:145px}.ask-plane-motif{right:27%;top:8px}.ask-stamp-motif{left:-13px;bottom:3px;width:58px;height:58px}.ask-editorial-copy .hero-copy{padding:22px 0 0}.ask-editorial-copy .ask-box{padding:16px 18px}.ask-editorial-copy .inspiration{text-align:left}.ask-editorial-copy .chips{justify-content:flex-start}
+ .itinerary-day>summary{grid-template-columns:62px minmax(0,1fr) 18px;gap:10px;padding:18px 0}.itinerary-day>summary strong{font-size:18px}.itinerary-day-panel{padding-bottom:25px}.travel-footprint-map{min-height:235px;padding:14px}.footprint-canvas{height:180px}.footprint-marker span{max-width:80px;font-size:8px}
+}

@@ -82,3 +82,38 @@ test('unverified schedules use approximate labels and natural-language edits mod
  session.applyItineraryInstruction('不要卢浮宫');assert.equal(session.experience.itinerary.days.length,before);assert.ok(!session.experience.itinerary.days.flatMap(day=>day.activities).some(activity=>activity.place.names.zh.includes('卢浮宫')));
  const first=session.experience.itinerary.days[1].activities[0].startTime;session.applyItineraryInstruction('第二天晚一点出门');assert.notEqual(session.experience.itinerary.days[1].activities[0].startTime,first);
 });
+
+test('itinerary uses collapsed day summaries and a single visible footprint by default',()=>{
+ const experience=buildTripExperience({trip:parisTrip}),html=renderTripSections(experience,'zh');
+ assert.equal((html.match(/<details class="itinerary-day"/g)||[]).length,5);
+ assert.equal((html.match(/<details class="itinerary-day"[^>]* open/g)||[]).length,1);
+ assert.match(html,/DAY 1[\s\S]*卢浮宫|DAY 1[\s\S]*凯旋门/);
+ assert.doesNotMatch(html,/行程顺序预览/);
+ assert.match(html,/足迹图/);
+});
+
+test('footprint uses coordinate-derived marker positions and schematic fallback is explicit',()=>{
+ const paris=buildTripExperience({trip:{...parisTrip,nights:1}}),map=renderRoutePreview(paris.itinerary.days[0],'zh');
+ assert.match(map,/data-route-state="coordinates"/);assert.match(map,/--x:\d+(?:\.\d+)?%;--y:\d/);assert.match(map,/footprint-route/);
+ const fallback=renderRoutePreview({day:1,activities:[{id:'a',place:{names:{zh:'地点甲',en:'Place A'},coordinates:null}},{id:'b',place:{names:{zh:'地点乙',en:'Place B'},coordinates:null}}]},'zh');
+ assert.match(fallback,/data-route-state="schematic"/);assert.match(fallback,/行程示意/);assert.match(fallback,/不代表真实方位/);
+});
+
+test('Paris, Tokyo and Chengdu provide useful destination-specific baseline POIs',()=>{
+ const provider=new CuratedPlaceProvider();
+ for(const city of ['Paris','Tokyo','Chengdu']){
+  const places=provider.search(city);assert.ok(places.length>=15,`${city} needs a complete curated pool`);
+  const experience=buildTripExperience({trip:{origin:'Shanghai',destination:city,nights:5}}),activities=experience.itinerary.days.flatMap(day=>day.activities);
+  assert.ok(activities.every(activity=>activity.place.source==='curated'));
+  assert.doesNotMatch(activities.map(activity=>activity.place.names.zh).join('|'),/抵达与熟悉周边|城市经典区域|当地风味时段/);
+ }
+});
+
+test('home centers the input and limits collage photos to small decorative dimensions',async()=>{
+ const css=await readFile(new URL('../dist/product.css',import.meta.url),'utf8');
+ const focused=css.slice(css.lastIndexOf('/* Focused home correction'));
+ assert.match(focused,/\.ask-editorial-copy\{[^}]*width:min\(100%,800px\);margin:0 auto/);
+ assert.match(focused,/\.ask-editorial-copy \.ask-box\{[^}]*max-width:720px;margin:0 auto/);
+ assert.match(focused,/\.ask-photo-main\{[^}]*width:168px;height:118px/);
+ assert.doesNotMatch(focused,/grid-template-columns:minmax\(0,1\.42fr\)/);
+});

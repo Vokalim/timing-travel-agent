@@ -42,7 +42,7 @@ test('navigation adapters separate map links from verified routing metrics',()=>
 });
 test('place provider owns POI facts; missing metadata stays null',()=>{
  assert.throws(()=>new PlaceProvider().search('Tokyo'));
- const places=new CuratedPlaceProvider().search('Tokyo');assert.ok(places.length>=6);assert.ok(places.every(place=>place.openingHours===null&&place.coordinates===null&&place.rating===null));
+ const places=new CuratedPlaceProvider().search('Tokyo');assert.ok(places.length>=15);assert.ok(places.every(place=>place.openingHours===null&&place.rating===null));assert.ok(places.every(place=>Number.isFinite(place.coordinates?.lat)&&Number.isFinite(place.coordinates?.lon)));
  assert.equal(new CuratedPlaceProvider().search('Unknown Place').length,0);
  assert.throws(()=>new AMapPlaceProvider().search('Tokyo'));
  assert.deepEqual(new GooglePlacesProvider(()=>[sample('from-provider')]).search('Tokyo'),[sample('from-provider')]);

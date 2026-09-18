@@ -222,6 +222,7 @@ output.addEventListener('click',async event=>{
  if(before===tripWorkspace.experience){const note=document.createElement('small');note.className='trip-action-note';note.textContent=tr('暂无更多地点，可以加入你想去的地方。','No other place yet; add one you would like to visit.');button.after(note);return;}
  refreshTripModules();
 });
+output.addEventListener('toggle',event=>{const day=event.target;if(!day.matches?.('details.itinerary-day')||!day.open)return;for(const other of output.querySelectorAll('details.itinerary-day[open]'))if(other!==day)other.open=false;},{capture:true});
 
 modeControl.addEventListener('change',changeMode);form.addEventListener('submit',e=>{e.preventDefault();run();});form.addEventListener('input',()=>{++editVersion;updateGuidance();document.querySelector('#stale').hidden=!result;});
 document.querySelector('#edit-request').addEventListener('click',()=>{structured.open=true;document.querySelector('#ask-state').scrollIntoView({behavior:'smooth'});});
