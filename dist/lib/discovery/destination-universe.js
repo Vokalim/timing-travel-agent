@@ -3,6 +3,8 @@
 const rows=`
 Beijing|北京|CN|Beijing|北京|city|culture,food,festive|Beijing|Beijing|historic|iconic
 Shanghai|上海|CN|Shanghai|上海|city|food,culture,shopping|Shanghai|Shanghai|urban|iconic
+Suzhou|苏州|CN|Jiangsu|江苏|city|culture,food,slow_travel,nature|Shanghai|Suzhou|historic|established
+Tianjin|天津|CN|Tianjin|天津|city|culture,food,slow_travel|Beijing|Tianjin|historic|established
 Chengdu|成都|CN|Sichuan|四川|city|food,culture,relaxation,nature|Chengdu|Chengdu|urban|iconic
 Chongqing|重庆|CN|Chongqing|重庆|city|food,culture,nature|Chongqing|Chongqing|urban|iconic
 Changsha|长沙|CN|Hunan|湖南|city|food,culture|Changsha|Changsha|urban|established

@@ -4,6 +4,7 @@ const visitMinutes={relaxed:105,balanced:90,intensive:70,deep_dive:120};
 const breakMinutes={relaxed:75,balanced:55,intensive:35,deep_dive:65};
 const pad=n=>String(n).padStart(2,'0');
 const clock=minutes=>`${pad(Math.floor(minutes/60))}:${pad(minutes%60)}`;
+const minutesOf=value=>/^\d\d:\d\d$/.test(value||'')?Number(value.slice(0,2))*60+Number(value.slice(3,5)):null;
 const unique=items=>[...new Map(items.filter(item=>item?.id).map(item=>[item.id,item])).values()];
 const affinity=(place,intents,soft)=>intents.includes(place.category)?5:soft.localFood&&place.category==='food'?4:soft.photography&&place.category==='photography'?4:soft.nature&&place.category==='nature'?4:0;
 const routeMinutes=(matrix,from,to)=>matrix?.[from]?.[to]?.durationMinutes??matrix?.[`${from}|${to}`]?.durationMinutes??null;
@@ -17,7 +18,7 @@ const planningTemplates=[
  {zh:'本地街区漫步',en:'Local neighborhood walk',category:'culture',areaKey:'local'},
  {zh:'自由探索与休息',en:'Flexible exploration and rest',category:'relaxation',areaKey:'local'}
 ];
-const planningActivity=(day,slot,pace)=>{const template=planningTemplates[(day-1+slot)%planningTemplates.length],id=`plan-${day}-${slot+1}`,start=startMinutes[pace]+slot*(visitMinutes[pace]+breakMinutes[pace]);return {id,placeId:id,place:{id,names:{zh:template.zh,en:template.en},category:template.category,areaKey:template.areaKey,coordinates:null,openingHours:null,source:'planning_template'},startTime:clock(start),endTime:clock(start+visitMinutes[pace]),openingHoursState:'unverified',routeState:'unverified',travelMinutes:null,travelDistanceMeters:null};};
+const planningActivity=(day,slot,pace)=>{const template=planningTemplates[(day-1+slot)%planningTemplates.length],id=`plan-${day}-${slot+1}`,start=startMinutes[pace]+slot*(visitMinutes[pace]+breakMinutes[pace]);return {id,placeId:id,place:{id,names:{zh:template.zh,en:template.en},category:template.category,areaKey:template.areaKey,coordinates:null,openingHours:null,source:'planning_template'},startTime:clock(start),endTime:clock(start+visitMinutes[pace]),schedulePrecision:'approximate',openingHoursState:'unverified',routeState:'unverified',travelMinutes:null,travelDistanceMeters:null};};
 
 export function placeOpenAt(place,dayDate,start,end){
  const hours=place.openingHours;if(!hours)return null;
@@ -60,7 +61,8 @@ export function buildPoiItinerary({places=[],nights=5,pace='balanced',intents=[]
    });
    if(!selected)break;
    const {place,travel}=selected;minute=afterLunch(minute+(travel??0),visitMinutes[validPace]);const start=minute,end=start+visitMinutes[validPace];
-   activities.push({id:`day-${index+1}-${place.id}`,placeId:place.id,place,startTime:clock(start),endTime:clock(end),openingHoursState:placeOpenAt(place,date,start,end)===null?'unverified':'checked',routeState:travel==null?'unverified':'verified',travelMinutes:travel,travelDistanceMeters:previous?routeDistance(routeMatrix,previous.id,place.id):null});
+   const openingState=placeOpenAt(place,date,start,end)===null?'unverified':'checked';
+   activities.push({id:`day-${index+1}-${place.id}`,placeId:place.id,place,startTime:clock(start),endTime:clock(end),schedulePrecision:openingState==='checked'&&travel!=null?'verified':'approximate',openingHoursState:openingState,routeState:travel==null?'unverified':'verified',travelMinutes:travel,travelDistanceMeters:previous?routeDistance(routeMatrix,previous.id,place.id):null});
    used.add(place.id);previous=place;minute=end+breakMinutes[validPace];
   }
   // A sparse curated catalog must not produce empty or half-built days. Fill
@@ -78,4 +80,21 @@ export function buildPoiItinerary({places=[],nights=5,pace='balanced',intents=[]
 
 export function replaceDayActivity(itinerary,dayNumber,activityId,replacement=null){
  return {...itinerary,days:itinerary.days.map(day=>day.day!==dayNumber?day:{...day,activities:replacement?day.activities.map(activity=>activity.id===activityId?replacement:activity):day.activities.filter(activity=>activity.id!==activityId),routeState:'unverified',routeDistanceMeters:null,routeDurationMinutes:null})};
+}
+
+export function retimeDayItinerary(itinerary,dayNumber,activityId,startTime,{durationMinutes=null}={}){
+ const requested=minutesOf(startTime);if(requested==null||requested<5*60||requested>22*60)throw new Error('Choose a valid start time.');
+ return {...itinerary,days:itinerary.days.map(day=>{
+  if(day.day!==dayNumber)return day;
+  const selectedIndex=day.activities.findIndex(activity=>activity.id===activityId);if(selectedIndex<0)return day;
+  const current=day.activities[selectedIndex],currentStart=minutesOf(current.startTime)??requested,currentEnd=minutesOf(current.endTime),selectedDuration=Number.isInteger(durationMinutes)&&durationMinutes>=30&&durationMinutes<=360?durationMinutes:currentEnd!=null?currentEnd-currentStart:visitMinutes[itinerary.pace]||90;
+  const delta=requested-currentStart;
+  const activities=day.activities.map((activity,index)=>{
+   if(index<selectedIndex)return activity;
+   const oldStart=minutesOf(activity.startTime);if(oldStart==null)return activity;
+   const oldEnd=minutesOf(activity.endTime),start=index===selectedIndex?requested:oldStart+delta,length=index===selectedIndex?selectedDuration:(oldEnd!=null?oldEnd-oldStart:visitMinutes[itinerary.pace]||90);
+   return {...activity,startTime:clock(start),endTime:clock(start+length),schedulePrecision:index===selectedIndex?'user_adjusted':'approximate'};
+  });
+  return {...day,activities,routeState:'unverified',routeDistanceMeters:null,routeDurationMinutes:null};
+ })};
 }

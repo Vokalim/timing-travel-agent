@@ -67,7 +67,7 @@ test('transport, stay, opening-hours and navigation data preserve verification b
  assert.equal(unknown.stay.hotelName,null);assert.equal(unknown.stay.price,null);assert.equal(unknown.stay.availability,null);
  assert.ok(unknown.itinerary.days.flatMap(day=>day.activities).every(item=>item.openingHoursState==='unverified'));
  assert.ok(unknown.itinerary.days.every(day=>day.routeDurationMinutes==null&&day.routeDistanceMeters==null));
- const html=renderTripSections(unknown,'zh');assert.match(html,/预算：(?:低|中|高)/);assert.doesNotMatch(html,/预算参考 · ¥/);
+ const html=renderTripSections(unknown,'zh');assert.match(html,/预算参考：(?:低|中|高)/);assert.doesNotMatch(html,/预算参考 · ¥/);
  const quote={price:880,currency:'CNY',provider:'Duffel',stops:0,segments:[]};
  const verified=buildTripExperience({trip:{origin:'Shanghai',destination:'Tokyo',nights:3},flightVerification:{status:'verified',source:'live',quote}});
  assert.equal(verified.transport.options.find(x=>x.mode==='flight').referenceLevel,'verified');

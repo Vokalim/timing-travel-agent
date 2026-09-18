@@ -1,7 +1,7 @@
 import {destinationIdentity} from './destination-identity.js';
 
 export const TRANSPORT_MODES=Object.freeze(['flight','train','self_drive']);
-const nearPairs=new Set(['shanghai|hangzhou','shanghai|nanjing','hangzhou|nanjing','chengdu|chongqing','guangzhou|shenzhen','beijing|tianjin','shenzhen|hong_kong','guangzhou|hong_kong'].map(value=>value.split('|').sort().join('|')));
+const nearPairs=new Set(['shanghai|hangzhou','shanghai|suzhou','shanghai|nanjing','hangzhou|nanjing','chengdu|chongqing','guangzhou|shenzhen','beijing|tianjin','shenzhen|hong_kong','guangzhou|hong_kong'].map(value=>value.split('|').sort().join('|')));
 const regionalPairs=new Set(['shanghai|qingdao','shanghai|xiamen','beijing|qingdao','guangzhou|changsha','chengdu|kunming','chongqing|kunming','hangzhou|xiamen'].map(value=>value.split('|').sort().join('|')));
 const pair=(a,b)=>[a,b].sort().join('|');
 const byScore=(a,b)=>b.suitabilityScore-a.suitabilityScore||TRANSPORT_MODES.indexOf(a.mode)-TRANSPORT_MODES.indexOf(b.mode);
@@ -33,12 +33,13 @@ export function planTransportOptions({origin,destination,countryOrRegion,duratio
   const quote=mode==='flight'&&flightVerification.status==='verified'?flightVerification.quote:null;
   const costBand=mode==='flight'?'high':mode==='train'?(near?'low':regional?'medium':'high'):(near?'medium':'high');
   const durationBand=mode==='flight'?(domestic&&near?'medium':'short'):mode==='train'?(near?'short':regional?'medium':'long'):(near?'medium':'long');
+  const reason=mode==='flight'?(domestic&&near?{zh:'机场流程会削弱短途优势。',en:'Airport processes reduce the advantage on a short route.'}:{zh:'适合跨区域或长距离出行。',en:'Suitable for long-distance travel.'}):mode==='train'?(near?{zh:'城际短途通常更直接，也省去机场流程。',en:'A direct intercity option without airport processes.'}:regional?{zh:'可平衡市区衔接与旅途时间。',en:'Balances city access with journey time.'}:{zh:'长距离铁路体验与班次仍待核验。',en:'Long-distance rail feasibility and schedules need checking.'}):(near?{zh:'适合多人同行或沿途停留。',en:'Useful for groups or stops along the way.'}:scenic?{zh:'适合把沿途风景纳入旅程。',en:'Useful when the journey itself is part of the trip.'}:{zh:'长距离驾驶负担较高。',en:'The long drive makes this a lower-priority option.'});
   return {mode,suitabilityScore:required&&mode!==required?0:applicable?Math.max(0,Math.min(100,scores[mode])):0,
    suitability:!applicable?'not_applicable':scores[mode]>=75?'high':scores[mode]>=50?'medium':'low',
    allowed:!required||required===mode,verification,
    price:quote?.price??null,currency:quote?.currency??null,quote,schedule:null,drivingTimeMinutes:null,
    referenceLevel:quote?'verified':'unknown',costBand:applicable?costBand:null,durationBand:applicable?durationBand:null,
-   source:quote?.provider||quote?.source||null};
+   source:quote?.provider||quote?.source||null,reason};
  }).sort(byScore);
  return {options,preferredMode:options.find(option=>option.allowed&&option.suitability!=='not_applicable')?.mode||null,requiredMode:required};
 }
