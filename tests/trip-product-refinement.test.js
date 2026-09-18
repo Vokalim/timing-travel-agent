@@ -109,11 +109,12 @@ test('Paris, Tokyo and Chengdu provide useful destination-specific baseline POIs
  }
 });
 
-test('home centers the input and limits collage photos to small decorative dimensions',async()=>{
- const css=await readFile(new URL('../dist/product.css',import.meta.url),'utf8');
- const focused=css.slice(css.lastIndexOf('/* Focused home correction'));
- assert.match(focused,/\.ask-editorial-copy\{[^}]*width:min\(100%,800px\);margin:0 auto/);
- assert.match(focused,/\.ask-editorial-copy \.ask-box\{[^}]*max-width:720px;margin:0 auto/);
- assert.match(focused,/\.ask-photo-main\{[^}]*width:168px;height:118px/);
- assert.doesNotMatch(focused,/grid-template-columns:minmax\(0,1\.42fr\)/);
+test('home centers the input and uses small vector travel stickers without photography',async()=>{
+ const [css,html]=await Promise.all(['product.css','index.html'].map(name=>readFile(new URL(`../dist/${name}`,import.meta.url),'utf8')));
+ const focused=css.slice(css.lastIndexOf('/* Focused visual cleanup'));
+ assert.match(css,/\.ask-editorial-copy\{[^}]*width:min\(100%,800px\);margin:0 auto/);
+ assert.match(css,/\.ask-editorial-copy \.ask-box\{[^}]*max-width:720px;margin:0 auto/);
+ assert.match(focused,/\.sticker-suitcase\{[^}]*width:74px;height:82px/);
+ assert.match(html,/class="ask-sticker-collage"/);
+ assert.doesNotMatch(html,/<aside class="ask-photo-collage"/);
 });

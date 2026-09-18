@@ -32,17 +32,35 @@ test('flight provider receives canonical city even when the UI uses Chinese labe
 
 test('visual provider selects the right city and category fallback with no cross-city mismatch',async()=>{
  const provider=new LocalDestinationVisualProvider();
- const tokyo=provider.getVisual({city:'Tokyo',iataOrMetroCode:'TYO'}),chengdu=provider.getVisual({city:'Chengdu',iataOrMetroCode:'CTU'}),sanya=provider.getVisual({city:'Sanya',iataOrMetroCode:'SYX'});
+ const tokyo=provider.getVisual({city:'Tokyo',iataOrMetroCode:'TYO'}),chengdu=provider.getVisual({city:'Chengdu',iataOrMetroCode:'CTU'}),paris=provider.getVisual({city:'Paris',iataOrMetroCode:'PAR'}),sanya=provider.getVisual({city:'Sanya',iataOrMetroCode:'SYX'});
  assert.equal(tokyo.destinationKey,'tokyo');assert.equal(destinationIdentity('Tokyo').code,'TYO');
- assert.match(tokyo.heroImages[0].src,/tokyo-editorial/);assert.doesNotMatch(tokyo.heroImages[0].src,/chengdu/);
- assert.match(chengdu.heroImages[0].src,/chengdu-editorial/);assert.equal(chengdu.specificity,'city');
+ assert.match(tokyo.heroImages[0].src,/Tokyo-skyline/);assert.doesNotMatch(tokyo.heroImages[0].src,/Chengdu/);
+ assert.match(chengdu.heroImages[0].description,/Chengdu/);assert.equal(chengdu.specificity,'city');
+ assert.match(paris.heroImages[0].src,/Paris%20Skyline/);assert.equal(paris.specificity,'city');
  assert.equal(sanya.fallbackCategory,'tropical');assert.equal(sanya.specificity,'category');assert.match(sanya.heroImages[0].src,/coastal-editorial/);
  assert.match(provider.getVisual({city:"Xi'an"}).heroImages[0].src,/east-asian-historic/);
  assert.match(provider.getVisual({city:'Harbin'}).heroImages[0].src,/winter-forest/);
- for(const visual of [tokyo,chengdu,sanya,provider.getVisual({city:'Harbin'})]){
+ for(const visual of [tokyo,chengdu,paris,sanya,provider.getVisual({city:'Harbin'})]){
   assert.ok(visual.heroImages.length+visual.scenicImages.length<=2);
-  for(const image of [...visual.heroImages,...visual.scenicImages]){assert.equal(image.kind,'illustration');assert.ok((await stat(new URL(`../dist${image.src}`,import.meta.url))).size>1000);}
+  for(const image of [...visual.heroImages,...visual.scenicImages]){
+   for(const field of ['url','source','author','license'])assert.equal(typeof image[field],'string');
+   assert.equal(typeof image.attributionRequired,'boolean');
+   if(image.kind==='illustration')assert.ok((await stat(new URL(`../dist${image.src}`,import.meta.url))).size>1000);
+   else {assert.equal(image.source,'Wikimedia Commons');assert.match(image.sourceUrl,/commons\.wikimedia\.org/);assert.match(image.licenseUrl,/creativecommons\.org/);}
+  }
  }
+});
+
+test('Home uses original inline travel stickers while Discover renders required photo attribution',async()=>{
+ const [html,app,css]=await Promise.all(['index.html','app.js','product.css'].map(name=>readFile(new URL(`../dist/${name}`,import.meta.url),'utf8')));
+ const home=html.match(/<section id="ask-state"[\s\S]*?<\/section>\s*<section id="results-state"/)?.[0]||'';
+ assert.doesNotMatch(home,/<img\b/);
+ assert.equal((home.match(/<svg class="ask-sticker(?: |")/g)||[]).length,5);
+ for(const id of ['sticker-suitcase','sticker-passport','sticker-camera','sticker-map'])assert.match(html,new RegExp(`id="${id}"`));
+ assert.doesNotMatch(html.match(/<defs>[\s\S]*?<\/defs>/)?.[0]||'',/<text\b/);
+ assert.match(app,/class="photo-attribution"/);assert.match(app,/attributionRequired/);
+ const cleanup=css.slice(css.lastIndexOf('/* Focused visual cleanup'));
+ assert.match(cleanup,/:focus-visible\{outline:none!important/);assert.doesNotMatch(cleanup,/orange|#c59245/i);
 });
 
 test('inspiration taxonomy covers holidays, scenery, and travel styles without trending claims',async()=>{

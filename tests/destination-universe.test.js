@@ -131,5 +131,9 @@ test('visuals select city, region, scenery and global fallback regardless of lan
  assert.deepEqual([city.specificity,region.specificity,category.specificity,unknown.specificity],['city','region','category','global']);
  assert.match(category.heroImages[0].src,/desert-landscape/);assert.match(grass.heroImages[0].src,/grassland-landscape/);
  assert.equal(provider.getVisual('会安').destinationKey,provider.getVisual('Hoi An').destinationKey);
- for(const visual of [city,region,category,grass,unknown])for(const image of [...visual.heroImages,...visual.scenicImages])assert.ok((await stat(new URL(`../dist${image.src}`,import.meta.url))).size>100);
+ for(const visual of [city,region,category,grass,unknown])for(const image of [...visual.heroImages,...visual.scenicImages]){
+  assert.ok(image.url&&image.source&&image.license);
+  if(image.src.startsWith('/assets/'))assert.ok((await stat(new URL(`../dist${image.src}`,import.meta.url))).size>100);
+  else assert.match(image.src,/^https:\/\/commons\.wikimedia\.org\//);
+ }
 });

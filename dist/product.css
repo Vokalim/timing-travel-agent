@@ -296,3 +296,39 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
  .ask-editorial-layout{min-height:0}.ask-photo-collage{position:absolute;height:auto}.ask-photo-main{top:-26px;left:-12px;width:92px;height:68px}.ask-photo-overlap{top:265px;right:-10px;width:86px;height:64px}.ask-photo-detail{display:none}.ask-route-motif{right:-15px;top:-22px;width:145px}.ask-plane-motif{right:27%;top:8px}.ask-stamp-motif{left:-13px;bottom:3px;width:58px;height:58px}.ask-editorial-copy .hero-copy{padding:22px 0 0}.ask-editorial-copy .ask-box{padding:16px 18px}.ask-editorial-copy .inspiration{text-align:left}.ask-editorial-copy .chips{justify-content:flex-start}
  .itinerary-day>summary{grid-template-columns:62px minmax(0,1fr) 18px;gap:10px;padding:18px 0}.itinerary-day>summary strong{font-size:18px}.itinerary-day-panel{padding-bottom:25px}.travel-footprint-map{min-height:235px;padding:14px}.footprint-canvas{height:180px}.footprint-marker span{max-width:80px;font-size:8px}
 }
+
+/* Focused visual cleanup: illustrated Home, licensed Discover imagery, calm interaction states. */
+.ask-sticker-collage{position:absolute;inset:0;z-index:1;pointer-events:none;color:#294f3b}
+.ask-sticker{position:absolute;overflow:visible;filter:drop-shadow(0 8px 10px rgba(40,65,50,.09))}
+.sticker-suitcase{left:1%;top:42px;width:74px;height:82px;transform:rotate(-5deg)}
+.sticker-passport{right:1%;top:152px;width:62px;height:76px;transform:rotate(5deg)}
+.sticker-camera{left:5%;bottom:84px;width:78px;height:58px;transform:rotate(3deg)}
+.sticker-map{right:5%;bottom:14px;width:91px;height:69px;transform:rotate(-4deg)}
+.sticker-plane{right:19%;top:48px;width:30px;height:30px;transform:rotate(13deg);filter:none}
+.ask-sticker-route{position:absolute;right:3%;top:12px;width:220px;height:92px;color:rgba(56,96,72,.34);overflow:visible}
+
+:where(button,a,select,input,textarea,summary):focus-visible{outline:none!important;box-shadow:0 0 0 1px rgba(57,103,76,.27),0 5px 16px rgba(39,73,53,.07)!important}
+.ask-box:focus-within{border-color:rgba(78,120,91,.36)!important;box-shadow:0 19px 48px rgba(34,63,48,.09)!important}
+.ask-box textarea:focus,.ask-box textarea:focus-visible{outline:none!important;box-shadow:none!important}
+.form-grid input:focus,.notes-label textarea:focus,.trip-inline-editor input:focus,.trip-wish-editor input:focus,.itinerary-command input:focus,.trip-time-editor input:focus{border-color:rgba(73,116,86,.46)!important;outline:none!important;box-shadow:0 4px 12px rgba(39,73,53,.055)!important}
+.trip-pace button[aria-pressed="true"],.trip-spending button[aria-pressed="true"],.discovery-filters button[aria-pressed="true"]{background:#e5ede3!important;color:#214d35!important;border-color:rgba(69,111,82,.35)!important;box-shadow:inset 0 0 0 1px rgba(69,111,82,.06)!important}
+.chips button[aria-pressed="true"],.chips button:active{background:#e7eee5!important;border-color:rgba(80,119,91,.28)!important;color:#244f36!important;box-shadow:none!important}
+#interpret-trip,#submit,.choose-destination,.view-trip{background:#204d38!important;color:#fff!important;border-color:#204d38!important;box-shadow:none!important}
+#interpret-trip:focus-visible,#submit:focus-visible,.choose-destination:focus-visible,.view-trip:focus-visible{outline:none!important;box-shadow:0 0 0 1px rgba(32,77,56,.24),0 5px 15px rgba(32,77,56,.09)!important}
+
+.feature-art .photo-attribution{position:absolute;left:10px;bottom:10px;z-index:5;padding:4px 6px;border-radius:4px;background:rgba(20,39,29,.68);color:#f4f2ea;font-size:8px;line-height:1.2}
+.photo-attribution a{color:inherit;text-decoration:none;border-bottom:1px solid currentColor}
+.idea-visual{position:relative;width:145px;height:172px;overflow:hidden;border-radius:1px 20px 1px 1px;background:#e5ebe2}
+.idea-visual>img{display:block;width:100%;height:100%;object-fit:cover;filter:saturate(.76)}
+.idea-visual .photo-attribution{position:absolute;left:5px;right:5px;bottom:5px;padding:3px 4px;border-radius:3px;background:rgba(20,39,29,.68);color:#f4f2ea;font-size:7px;line-height:1.2}
+.trip-hero-images .photo-attribution{position:absolute;left:8px;bottom:8px;z-index:5;max-width:67%;padding:4px 6px;border-radius:4px;background:rgba(20,39,29,.68);color:#f4f2ea;font-size:8px;line-height:1.2}
+
+@media(max-width:960px){
+ .sticker-suitcase{left:-8px;width:60px;height:68px}.sticker-passport{right:-4px;width:54px;height:66px}.sticker-camera{left:1%;width:67px;height:50px}.sticker-map{right:1%;width:76px;height:58px}.ask-sticker-route{right:-8px;width:180px}.sticker-plane{right:24%}
+ .idea-visual{width:110px;height:145px}
+}
+@media(max-width:760px){
+ .sticker-suitcase{left:-9px;top:-15px;width:48px;height:55px}.sticker-passport{right:-9px;top:245px;width:43px;height:54px}.sticker-camera{left:-7px;bottom:5px;width:50px;height:38px}.sticker-map{display:none}.ask-sticker-route{right:-14px;top:-26px;width:140px}.sticker-plane{right:25%;top:5px;width:24px;height:24px}
+ .idea-visual{width:125px;height:155px}
+}
+@media(max-width:480px){.idea-visual{width:96px;height:128px}}
