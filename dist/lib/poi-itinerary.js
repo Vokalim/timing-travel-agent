@@ -82,6 +82,12 @@ export function replaceDayActivity(itinerary,dayNumber,activityId,replacement=nu
  return {...itinerary,days:itinerary.days.map(day=>day.day!==dayNumber?day:{...day,activities:replacement?day.activities.map(activity=>activity.id===activityId?replacement:activity):day.activities.filter(activity=>activity.id!==activityId),routeState:'unverified',routeDistanceMeters:null,routeDurationMinutes:null})};
 }
 
+export function applyRouteMatrixToItinerary(itinerary,routeMatrix){
+ if(!routeMatrix||!Object.keys(routeMatrix).length)return itinerary;
+ let itineraryChanged=false;const days=itinerary.days.map(day=>{let activitiesChanged=false;const activities=day.activities.map((activity,index)=>{const previous=index?day.activities[index-1]:null,travelMinutes=previous?routeMinutes(routeMatrix,previous.placeId,activity.placeId):null,travelDistanceMeters=previous?routeDistance(routeMatrix,previous.placeId,activity.placeId):null,routeState=travelMinutes!=null&&travelDistanceMeters!=null?'verified':'unverified';if(activity.routeState===routeState&&activity.travelMinutes===travelMinutes&&activity.travelDistanceMeters===travelDistanceMeters)return activity;activitiesChanged=true;return {...activity,routeState,travelMinutes,travelDistanceMeters};}),legs=activities.slice(1),verified=legs.length>0&&legs.every(activity=>activity.travelMinutes!=null&&activity.travelDistanceMeters!=null),routeState=verified?'verified':'unverified',routeDistanceMeters=verified?legs.reduce((sum,item)=>sum+item.travelDistanceMeters,0):null,routeDurationMinutes=verified?legs.reduce((sum,item)=>sum+item.travelMinutes,0):null;
+  if(!activitiesChanged&&day.routeState===routeState&&day.routeDistanceMeters===routeDistanceMeters&&day.routeDurationMinutes===routeDurationMinutes)return day;itineraryChanged=true;return {...day,activities,routeState,routeDistanceMeters,routeDurationMinutes};});return itineraryChanged?{...itinerary,days}:itinerary;
+}
+
 export function retimeDayItinerary(itinerary,dayNumber,activityId,startTime,{durationMinutes=null}={}){
  const requested=minutesOf(startTime);if(requested==null||requested<5*60||requested>22*60)throw new Error('Choose a valid start time.');
  return {...itinerary,days:itinerary.days.map(day=>{

@@ -15,7 +15,7 @@ export class AMapNavigationProvider extends NavigationProvider {
   constructor(routeImpl=null){super();this.routeImpl=routeImpl;}
   route(request){return this.routeImpl?this.routeImpl(request):{status:'unverified',distanceMeters:null,durationMinutes:null,polyline:null};}
   mapUrl(place){return `https://uri.amap.com/search?keyword=${query(place,'zh')}&view=map&src=timing`;}
-  directionsUrl(place){const {longitude,latitude}=place?.coordinates||{};
+  directionsUrl(place){const coordinates=place?.coordinates||{},longitude=coordinates.lng??coordinates.lon??coordinates.longitude,latitude=coordinates.lat??coordinates.latitude;
     return Number.isFinite(longitude)&&Number.isFinite(latitude)?`https://uri.amap.com/navigation?from=&to=${encodeURIComponent(`${longitude},${latitude},${place.names?.zh||place.names?.en||''}`)}&mode=car&src=timing`:this.mapUrl(place);}
 }
 export const navigationForCountry=country=>country==='China'?new AMapNavigationProvider():new GoogleNavigationProvider();

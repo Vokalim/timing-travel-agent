@@ -5,12 +5,14 @@ import {fileURLToPath} from 'node:url';
 import {createTravelApi} from './travel-api.js';
 import {createPreferenceApi} from './preference-api.js';
 import {createDestinationDiscoveryApi} from './destination-discovery-api.js';
+import {createPlaceRouteApi} from './place-route-api.js';
 
 const root=resolve(fileURLToPath(new URL('../dist/',import.meta.url)));
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.svg':'image/svg+xml'};
 const api=createTravelApi();
 const preferenceApi=createPreferenceApi();
 const destinationDiscoveryApi=createDestinationDiscoveryApi();
+const placeRouteApi=createPlaceRouteApi();
 const send=(response,status,body,type='text/plain; charset=utf-8')=>{response.writeHead(status,{'Content-Type':type,'Cache-Control':'no-store'});response.end(body);};
 const readWebRequest=async(request,path)=>{
   const chunks=[];let size=0;
@@ -38,6 +40,14 @@ const server=createServer(async(request,response)=>{
       const result=await destinationDiscoveryApi.handle(await readWebRequest(request,url.pathname));
       return send(response,result.status,await result.text(),'application/json; charset=utf-8');
     } catch { return send(response,400,JSON.stringify({error:{code:'INVALID_REQUEST',message:'The destination discovery request was invalid.'}}),'application/json; charset=utf-8'); }
+  }
+  if (request.method==='POST' && url.pathname==='/api/travel/places/discover') {
+    try {const result=await placeRouteApi.handle(await readWebRequest(request,url.pathname),'places');return send(response,result.status,await result.text(),'application/json; charset=utf-8');}
+    catch {return send(response,400,JSON.stringify({error:{code:'INVALID_REQUEST',message:'The live place request was invalid.'}}),'application/json; charset=utf-8');}
+  }
+  if (request.method==='POST' && url.pathname==='/api/travel/routes/segments') {
+    try {const result=await placeRouteApi.handle(await readWebRequest(request,url.pathname),'routes');return send(response,result.status,await result.text(),'application/json; charset=utf-8');}
+    catch {return send(response,400,JSON.stringify({error:{code:'INVALID_REQUEST',message:'The live route request was invalid.'}}),'application/json; charset=utf-8');}
   }
   if (url.pathname.startsWith('/api/')) return send(response,404,JSON.stringify({error:{code:'NOT_LIVE',message:'Hotels are Demo / not yet live.'}}),'application/json; charset=utf-8');
   if (!['GET','HEAD'].includes(request.method)) return send(response,405,'Method not allowed');

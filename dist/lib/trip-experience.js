@@ -2,7 +2,7 @@ import {createTripRequest} from './trip-request.js';
 import {destinationIdentity} from './discovery/destination-identity.js';
 import {planTransportOptions} from './discovery/transport-planner.js';
 import {CuratedPlaceProvider} from './providers/place-provider.js';
-import {buildPoiItinerary} from './poi-itinerary.js';
+import {buildPoiItinerary,applyRouteMatrixToItinerary} from './poi-itinerary.js';
 
 const area=(key,zh,en)=>({key,labels:{zh,en}});
 const areaNames={asakusa:['浅草','Asakusa'],ueno:['上野','Ueno'],central:['市中心','Central district'],shibuya:['涩谷','Shibuya'],shinjuku:['新宿','Shinjuku'],bay:['东京湾沿线','Tokyo Bay'],east_tokyo:['东京东部','East Tokyo'],bund:['外滩一带','The Bund area'],old_town:['老城街区','Old town'],people_square:['人民广场一带',"People's Square area"],west_lake:['西湖沿线','West Lake area'],longjing:['龙井一带','Longjing area'],castle:['大阪城一带','Osaka Castle area'],minami:['难波 / 心斋桥','Namba / Shinsaibashi'],daoli:['中央大街 / 道里','Central Street / Daoli'],songbei:['松北','Songbei'],ice_world:['冰雪大世界周边','Ice and Snow World area'],central_chengdu:['人民公园 / 宽窄巷子','People’s Park / Kuanzhai Alley'],wuhou:['武侯祠 / 玉林','Wuhou / Yulin'],panda_base:['熊猫基地周边','Panda Base area'],wenshu:['文殊院一带','Wenshu Monastery'],chunxi:['春熙路 / 太古里','Chunxi Road / Taikoo Li'],qingyang:['青羊宫 / 杜甫草堂','Qingyang / Du Fu Cottage'],jinsha:['金沙一带','Jinsha'],east_chengdu:['东郊记忆一带','East Chengdu'],jiuyanqiao:['九眼桥一带','Jiuyan Bridge'],louvre:['卢浮宫 / 歌剧院一带','Louvre / Opéra'],saint_germain:['圣日耳曼一带','Saint-Germain'],cite:['西岱岛周边','Île de la Cité'],marais:['玛黑区','Le Marais'],montmartre:['蒙马特','Montmartre'],eiffel:['埃菲尔铁塔 / 七区','Eiffel Tower / 7th arrondissement'],champs_elysees:['香榭丽舍一带','Champs-Élysées'],canal:['圣马丁运河一带','Canal Saint-Martin'],bastille:['巴士底一带','Bastille']};
@@ -42,14 +42,14 @@ export class PlanningItinerary extends ItineraryPlanner {
  }
 }
 
-export function buildTripExperience({trip,plan=null,candidate=null,flightVerification={status:'not_checked',source:null},stayProvider=new PlanningStayRecommendation(),itineraryPlanner=new PlanningItinerary(),placeProvider=new CuratedPlaceProvider(),routeMatrix=null,pace=null,spendingOrientation=null,itineraryOverride=null}){
+export function buildTripExperience({trip,plan=null,candidate=null,flightVerification={status:'not_checked',source:null},stayProvider=new PlanningStayRecommendation(),itineraryPlanner=new PlanningItinerary(),placeProvider=new CuratedPlaceProvider(),places=null,routeMatrix=null,pace=null,spendingOrientation=null,itineraryOverride=null}){
  const request=createTripRequest({...trip,destination:trip.destination||candidate?.city||null});
  if(!request.destination)throw new Error('Select a destination before planning a stay or itinerary.');
  const nights=plan?.nights||request.nights||5,context={...request,nights,planningPace:pace||request.constraints?.pace||'balanced',spendingOrientation:spendingOrientation||request.spendingOrientation||'value'};
  const transport=planTransportOptions({origin:context.origin,destination:context.destination,countryOrRegion:candidate?.countryOrRegion,durationDays:nights,constraints:context.constraints,flightVerification,spendingOrientation:context.spendingOrientation});
- const places=placeProvider.search(context.destination),skeleton=itineraryOverride||itineraryPlanner.plan(context,{areas:[]},plan,{places,routeMatrix,pace,spendingOrientation:context.spendingOrientation});
- const stay=stayProvider.recommend(context,{itinerary:skeleton,places,transport}),itinerary=itineraryOverride||itineraryPlanner.plan(context,stay,plan,{places,routeMatrix,pace,spendingOrientation:context.spendingOrientation});
+ const resolvedPlaces=places||placeProvider.search(context.destination),resolvedOverride=itineraryOverride?applyRouteMatrixToItinerary(itineraryOverride,routeMatrix):null,skeleton=resolvedOverride||itineraryPlanner.plan(context,{areas:[]},plan,{places:resolvedPlaces,routeMatrix,pace,spendingOrientation:context.spendingOrientation});
+ const stay=stayProvider.recommend(context,{itinerary:skeleton,places:resolvedPlaces,transport}),itinerary=resolvedOverride||itineraryPlanner.plan(context,stay,plan,{places:resolvedPlaces,routeMatrix,pace,spendingOrientation:context.spendingOrientation});
  const frequentArea=Object.entries(itinerary.days.reduce((counts,day)=>{for(const activity of day.activities||[])counts[activity.place.areaKey]=(counts[activity.place.areaKey]||0)+1;return counts;},{})).sort((a,b)=>b[1]-a[1])[0]?.[0]||null;
- if(frequentArea){const anchor=places.find(place=>place.areaKey===frequentArea);stay.poiCluster={areaKey:frequentArea,nearPlace:anchor?.names||null,source:'itinerary_place_cluster'};}
+ if(frequentArea){const anchor=resolvedPlaces.find(place=>place.areaKey===frequentArea);stay.poiCluster={areaKey:frequentArea,nearPlace:anchor?.names||null,source:'itinerary_place_cluster'};}
  return {trip:context,plan,transport,stay,itinerary,flightVerification,access:candidate?.access||null};
 }

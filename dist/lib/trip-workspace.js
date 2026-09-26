@@ -1,6 +1,7 @@
 import {prepareExploration} from './planning-service.js';
 import {buildTripExperience} from './trip-experience.js';
 import {replaceDayActivity,retimeDayItinerary} from './poi-itinerary.js';
+import {routeMatrixFromSegments,routeSegmentKey} from './models/route-segment.js';
 
 const iso=date=>date.toISOString().slice(0,10);
 const plus=(value,days)=>iso(new Date(Date.parse(`${value}T00:00:00Z`)+days*86400000));
@@ -18,12 +19,15 @@ export function revisedTripDates(trip,window,selection,{departure,returnDate}={}
 }
 
 export class TripWorkspaceSession {
- constructor({trip,plan=null,candidate=null,flightVerification={status:'not_checked',source:null},pace=null,spendingOrientation=null}={}){
+ constructor({trip,plan=null,candidate=null,flightVerification={status:'not_checked',source:null},pace=null,spendingOrientation=null,sessionId=null}={}){
   this.trip=trip;this.plan=plan||prepareExploration(trip);this.candidate=candidate;this.flightVerification=flightVerification;
-  this.pace=pace||trip.constraints?.pace||'balanced';this.spendingOrientation=spendingOrientation||trip.spendingOrientation||'value';this.experience=this.build();
+  this.pace=pace||trip.constraints?.pace||'balanced';this.spendingOrientation=spendingOrientation||trip.spendingOrientation||'value';this.sessionId=sessionId||`trip-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;this.providerPlaces=null;this.routeSegments=new Map();this.experience=this.build();
  }
- build(itineraryOverride=null){return buildTripExperience({trip:{...this.trip,spendingOrientation:this.spendingOrientation},plan:this.plan,candidate:this.candidate,flightVerification:this.flightVerification,pace:this.pace,spendingOrientation:this.spendingOrientation,itineraryOverride});}
+ build(itineraryOverride=null){return buildTripExperience({trip:{...this.trip,spendingOrientation:this.spendingOrientation},plan:this.plan,candidate:this.candidate,flightVerification:this.flightVerification,places:this.providerPlaces,routeMatrix:routeMatrixFromSegments([...this.routeSegments.values()]),pace:this.pace,spendingOrientation:this.spendingOrientation,itineraryOverride});}
  rebuildFromItinerary(itinerary){this.experience=this.build(itinerary);return this.experience;}
+ applyProviderPlaces(places){if(!Array.isArray(places)||!places.length)return this.experience;this.providerPlaces=places;this.routeSegments.clear();this.experience=this.build();return this.experience;}
+ applyRouteSegments(segments){for(const segment of segments||[])this.routeSegments.set(segment.key||routeSegmentKey(segment),segment);return this.rebuildFromItinerary(this.experience.itinerary);}
+ missingAdjacentRouteSegments(){const requests=[];for(const day of this.experience.itinerary.days||[])for(let index=1;index<day.activities.length;index++){const origin=day.activities[index-1].place,destination=day.activities[index].place;if(!origin.providerPlaceId||!destination.providerPlaceId||origin.provider!==destination.provider)continue;const key=routeSegmentKey({provider:origin.provider,originPlaceId:origin.providerPlaceId,destinationPlaceId:destination.providerPlaceId,mode:'walking'});if(!this.routeSegments.has(key))requests.push({key,origin,destination});}return requests;}
  changePace(pace){if(!['relaxed','balanced','intensive','deep_dive'].includes(pace))throw new Error('Unknown travel pace.');this.pace=pace;this.experience=this.build();return this.experience;}
  changeSpendingOrientation(value){if(!['value','comfort'].includes(value))throw new Error('Unknown spending orientation.');this.spendingOrientation=value;this.trip={...this.trip,spendingOrientation:value};this.experience=this.build();return this.experience;}
  changeDuration(nights){if(!Number.isInteger(nights)||nights<1||nights>30)throw new Error('Choose 1–30 nights.');this.trip={...this.trip,nights};this.plan=prepareExploration(this.trip);this.flightVerification={status:'not_checked',source:this.flightVerification.source};this.experience=this.build();return this.experience;}

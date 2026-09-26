@@ -1,13 +1,17 @@
 import {destinationIdentity} from '../discovery/destination-identity.js';
+import {VerificationState,canonicalCoordinates} from '../models/canonical-poi.js';
 
 // Place facts are supplied by a provider. Missing hours, coordinates and ratings stay null.
 export class PlaceProvider {
   search(_destination) { throw new Error('Implement PlaceProvider.search(destination).'); }
+  searchDestinationPOIs(destination){return this.search(destination);}
+  resolvePlace(_query,_destination){return null;}
+  normalizePlace(place){return place;}
 }
 
-const place=(id,zh,en,category,areaKey,coordinates=null)=>({id,names:{zh,en},category,areaKey,
-  coordinates,openingHours:null,rating:null,photos:[],address:null,
-  source:'curated',verificationState:'place_identity_only'});
+const place=(id,zh,en,category,areaKey,coordinates=null)=>({id,names:{zh,en},canonicalName:en,displayName:zh,provider:'curated',providerPlaceId:null,category,areaKey,
+  coordinates:coordinates?canonicalCoordinates(coordinates.lat,coordinates.lon,'WGS84'):null,openingHours:null,rating:null,photos:[],address:null,
+  source:'curated',sourceAttribution:null,verificationState:VerificationState.CURATED_FALLBACK});
 const catalog={
   tokyo:[
     place('tokyo-sensoji','浅草寺','Sensō-ji','culture','asakusa',{lat:35.7148,lon:139.7967}),place('tokyo-nakamise','仲见世商店街','Nakamise Shopping Street','shopping','asakusa',{lat:35.7117,lon:139.7964}),
