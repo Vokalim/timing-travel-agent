@@ -1,0 +1,2 @@
+const post=async(body,fetchImpl)=>{const response=await fetchImpl('/api/travel/research',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),payload=await response.json().catch(()=>({}));if(!response.ok){const error=new Error(payload.error?.message||'Travel research is unavailable.');error.code=payload.error?.code||'RESEARCH_UNAVAILABLE';throw error;}return payload;};
+export class TravelResearchClient{constructor({fetchImpl=globalThis.fetch}={}){this.fetchImpl=fetchImpl;}research(input){return post(input,this.fetchImpl);}}

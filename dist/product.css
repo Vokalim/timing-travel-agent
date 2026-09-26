@@ -420,3 +420,4 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
  .ask-editorial-copy .ask-box textarea{padding:20px 24px 22px}
  .ask-editorial-copy .ask-box .ask-actions{margin-inline:24px}
 }
+.trip-research-sources{margin-top:16px;color:var(--muted,#65746c);font-size:.8rem}.trip-research-sources summary{cursor:pointer;color:var(--ink,#173c2c);font-weight:650}.trip-research-sources p{max-width:62ch;margin:10px 0 6px}.trip-research-sources ul{margin:0;padding-left:18px}.trip-research-sources a{color:inherit;text-underline-offset:3px}

@@ -34,7 +34,7 @@ export class PlanningItinerary extends ItineraryPlanner {
   const preferredPace=pace||trip.constraints?.pace||'balanced';
   const departure=plan?.windows?.[0]?.departure;
   const dates=departure?Array.from({length:nights},(_,index)=>new Date(Date.parse(`${departure}T00:00:00Z`)+index*86400000).toISOString().slice(0,10)):[];
-  const itinerary=buildPoiItinerary({places,nights,pace:preferredPace,intents,soft,dates,routeMatrix,stayAreaKeys:(stay?.areas||[]).map(item=>item.key),spendingOrientation});
+  const itinerary=buildPoiItinerary({places,nights,pace:preferredPace,intents,soft,preferenceText:trip.notes||'',dates,routeMatrix,stayAreaKeys:(stay?.areas||[]).map(item=>item.key),spendingOrientation});
   const strong=trip.constraints?.strong||{},transportPreference=trip.constraints?.hard?.transportModeRequired||strong.trainPreferred&&'train'||strong.selfDrivePreferred&&'self_drive'||strong.flightPreferred&&'flight'||null;
   return {...itinerary,transportPreference,transportPreferenceStrength:trip.constraints?.hard?.transportModeRequired?'hard':transportPreference?'strong':null,
    departureWindow:plan?.context?.dateDescription||null,representativeDeparture:plan?.windows?.[0]?.departure||null,dateSource:plan?.dateSource||null,
@@ -42,7 +42,7 @@ export class PlanningItinerary extends ItineraryPlanner {
  }
 }
 
-export function buildTripExperience({trip,plan=null,candidate=null,flightVerification={status:'not_checked',source:null},stayProvider=new PlanningStayRecommendation(),itineraryPlanner=new PlanningItinerary(),placeProvider=new CuratedPlaceProvider(),places=null,routeMatrix=null,pace=null,spendingOrientation=null,itineraryOverride=null}){
+export function buildTripExperience({trip,plan=null,candidate=null,flightVerification={status:'not_checked',source:null},stayProvider=new PlanningStayRecommendation(),itineraryPlanner=new PlanningItinerary(),placeProvider=new CuratedPlaceProvider(),places=null,research=null,routeMatrix=null,pace=null,spendingOrientation=null,itineraryOverride=null}){
  const request=createTripRequest({...trip,destination:trip.destination||candidate?.city||null});
  if(!request.destination)throw new Error('Select a destination before planning a stay or itinerary.');
  const nights=plan?.nights||request.nights||5,context={...request,nights,planningPace:pace||request.constraints?.pace||'balanced',spendingOrientation:spendingOrientation||request.spendingOrientation||'value'};
@@ -51,5 +51,5 @@ export function buildTripExperience({trip,plan=null,candidate=null,flightVerific
  const stay=stayProvider.recommend(context,{itinerary:skeleton,places:resolvedPlaces,transport}),itinerary=resolvedOverride||itineraryPlanner.plan(context,stay,plan,{places:resolvedPlaces,routeMatrix,pace,spendingOrientation:context.spendingOrientation});
  const frequentArea=Object.entries(itinerary.days.reduce((counts,day)=>{for(const activity of day.activities||[])counts[activity.place.areaKey]=(counts[activity.place.areaKey]||0)+1;return counts;},{})).sort((a,b)=>b[1]-a[1])[0]?.[0]||null;
  if(frequentArea){const anchor=resolvedPlaces.find(place=>place.areaKey===frequentArea);stay.poiCluster={areaKey:frequentArea,nearPlace:anchor?.names||null,source:'itinerary_place_cluster'};}
- return {trip:context,plan,transport,stay,itinerary,flightVerification,access:candidate?.access||null};
+ return {trip:context,plan,transport,stay,itinerary,research,flightVerification,access:candidate?.access||null};
 }

@@ -16,6 +16,7 @@ import {presentDiscoveryCandidate,displayTransportStatus,displayLabel} from './l
 import {planningCandidateForDestination} from './lib/discovery/destination-access-resolver.js';
 import {getDestination} from './lib/discovery/destination-universe.js';
 import {LivePlaceRouteClient} from './lib/providers/live-place-route.js';
+import {TravelResearchClient} from './lib/providers/travel-research-client.js';
 
 const form=document.querySelector('#trip-form'),output=document.querySelector('#results');
 const modeControl=document.querySelector('#data-mode'),indicator=document.querySelector('#source-indicator');
@@ -24,18 +25,18 @@ const agentStatus=document.querySelector('#agent-status'),structured=document.qu
 let result,discoveryResult,clarificationDraft,independentTrip,selected,language='zh',requestId=0,editVersion=0,discoveryFilter='all',chosenCandidate=null,discoverySnapshot=null;
 let visualRenderId=0;
 let tripWorkspace=null,tripWorkspaceKey='',preferredTripPace=null,preferredSpendingOrientation=null;
-const livePlaceRouteClient=new LivePlaceRouteClient(),liveGeoState=new WeakMap();
+const livePlaceRouteClient=new LivePlaceRouteClient(),travelResearchClient=new TravelResearchClient(),liveGeoState=new WeakMap();
 function workspaceFor({trip,plan,flightVerification,candidate=null,key}){
  if(!tripWorkspace||tripWorkspaceKey!==key){tripWorkspace=new TripWorkspaceSession({trip,plan,flightVerification,candidate,pace:preferredTripPace,spendingOrientation:preferredSpendingOrientation,sessionId:`timing:${key}`});tripWorkspaceKey=key;}
  return tripWorkspace;
 }
 
 async function hydrateLivePlaceAndRoutes(workspace){
- if(modeControl.value!=='live'||!workspace)return;const state=liveGeoState.get(workspace)||{running:false,placesLoaded:false};if(state.running)return;state.running=true;liveGeoState.set(workspace,state);
+ if(!workspace)return;const state=liveGeoState.get(workspace)||{running:false,researchLoaded:false};if(state.running)return;state.running=true;liveGeoState.set(workspace,state);
  try{
   const destination=getDestination(workspace.trip.destination);if(!destination)return;
-  if(!state.placesLoaded){const response=await livePlaceRouteClient.discover({sessionId:workspace.sessionId,destinationId:destination.id,destinationName:destination.canonicalName,countryCode:destination.countryCode,locale:language==='zh'?'zh-CN':'en',categories:[...new Set([...(workspace.trip.travelIntents||[]),'culture','nature'])].slice(0,3)});workspace.applyProviderPlaces(response.places);state.placesLoaded=true;if(workspace===tripWorkspace)refreshTripModules();}
-  for(let pass=0;pass<3;pass++){const missing=workspace.missingAdjacentRouteSegments().slice(0,30);if(!missing.length)break;const provider=missing[0].origin.provider,response=await livePlaceRouteClient.routeSegments({sessionId:workspace.sessionId,provider,locale:language==='zh'?'zh-CN':'en',segments:missing.map(({origin,destination})=>({origin,destination}))});workspace.applyRouteSegments(response.segments);if(workspace===tripWorkspace)refreshTripModules();}
+  if(!state.researchLoaded){const response=await travelResearchClient.research({sessionId:workspace.sessionId,destinationId:destination.id,destinationName:destination.canonicalName,countryCode:destination.countryCode,countryName:destination.countryNames.en,locale:language==='zh'?'zh-CN':'en',categories:[...new Set([...(workspace.trip.travelIntents||[]),'culture','nature'])].slice(0,8),preferences:{notes:workspace.trip.notes||'',travelIntents:workspace.trip.travelIntents||[]},pace:workspace.pace,durationDays:workspace.trip.nights});workspace.applyResearchResult(response);state.researchLoaded=true;if(workspace===tripWorkspace)refreshTripModules();}
+  if(modeControl.value==='live'&&workspace.providerPlaces?.[0]?.provider==='amap')for(let pass=0;pass<3;pass++){const missing=workspace.missingAdjacentRouteSegments().slice(0,30);if(!missing.length)break;const response=await livePlaceRouteClient.routeSegments({sessionId:workspace.sessionId,provider:'amap',locale:language==='zh'?'zh-CN':'en',segments:missing.map(({origin,destination})=>({origin,destination}))});workspace.applyRouteSegments(response.segments);if(workspace===tripWorkspace)refreshTripModules();}
  }catch(error){state.errorCode=error.code||'PROVIDER_UNAVAILABLE';}finally{state.running=false;}
 }
 const discoverySession=new DestinationRecommendationSession();
