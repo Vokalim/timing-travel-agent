@@ -1,5 +1,6 @@
 import {TRAVEL_INTENTS} from './trip-request.js';
 import {parsePreferenceConstraints} from './preference-constraints.js';
+import {normalizeExplicitDestination} from './discovery/explicit-destination.js';
 
 export const tripFields = {
   origin:'Origin', destination:'Destination', start:'Earliest departure (including year)',
@@ -48,6 +49,8 @@ export class DemoPreferenceParser extends PreferenceParser {
       const found=[['上海','Shanghai'],['北京','Beijing'],['广州','Guangzhou'],['深圳','Shenzhen'],['成都','Chengdu'],['重庆','Chongqing'],['长沙','Changsha'],['南昌','Nanchang'],['厦门','Xiamen'],['三亚','Sanya'],['昆明','Kunming'],['大理','Dali'],['丽江','Lijiang'],['桂林','Guilin'],['西安',"Xi'an"],['杭州','Hangzhou'],['南京','Nanjing'],['青岛','Qingdao'],['哈尔滨','Harbin'],['香港','Hong Kong']].find(([name])=>text.includes(name));
       if(found)fields.origin=found[1];
     }
+    const explicitDestination=normalizeExplicitDestination(text,{origin:fields.origin});
+    if(explicitDestination)fields.destination=explicitDestination;
     if (!fields.destination) {
       const found=[['东京','Tokyo'],['東京','Tokyo'],['大阪','Osaka'],['首尔','Seoul'],['首爾','Seoul'],['新加坡','Singapore'],['曼谷','Bangkok'],['伦敦','London'],['巴黎','Paris'],['北京','Beijing'],['广州','Guangzhou'],['深圳','Shenzhen'],['成都','Chengdu'],['重庆','Chongqing'],['长沙','Changsha'],['厦门','Xiamen'],['三亚','Sanya'],['昆明','Kunming'],['大理','Dali'],['丽江','Lijiang'],['桂林','Guilin'],['西安',"Xi'an"],['杭州','Hangzhou'],['南京','Nanjing'],['青岛','Qingdao'],['哈尔滨','Harbin']].find(([name])=>new RegExp(`(?:去|到)${name}`).test(text));
       if(found&&!new RegExp(`(?:不要|排除|避开|避開)(?:去|到)?${found[0]}`).test(text))fields.destination=found[1];

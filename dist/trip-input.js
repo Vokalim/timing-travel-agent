@@ -4,6 +4,7 @@ import {displayCity} from './lib/discovery/destination-identity.js';
 import {parsePreferenceConstraints,preferenceSummary} from './lib/preference-constraints.js';
 import {knownDisplayLabel,displayTravelPeriod} from './lib/display-localization.js';
 import {createTemporalContext} from './lib/discovery/temporal-context.js';
+import {normalizeExplicitDestination} from './lib/discovery/explicit-destination.js';
 
 const isZh=()=>document.documentElement.lang.startsWith('zh');
 const t=(zh,en)=>isZh()?zh:en;
@@ -27,7 +28,7 @@ export function setupTripInput(form,onDraftChange,parser=new FallbackPreferenceP
  button.addEventListener('click',async()=>{
   if(!input.value.trim()){review.hidden=false;review.textContent=t('请先描述你的旅行，当前条件没有改变。','Describe your trip first. Your form has not changed.');return;}
   button.disabled=true;status.hidden=false;
-  try{const draft=await parser.parse(input.value);lastDraft=draft;for(const key of [...Object.keys(tripFields),'notes']){const field=form.elements.namedItem(key);field.value=draft.fields[key]??'';field.classList.toggle('needs-confirmation',key==='origin'&&draft.needsConfirmation.includes(key));field.setAttribute('aria-describedby','trip-review');}const total=form.elements.namedItem('totalTripBudgetCny');if(total)total.value=draft.fields.totalTripBudgetCny??draft.interpretation?.totalTripBudgetCny??'';travelIntents.value=draft.fields.travelIntents.join(',');renderReview(draft);onDraftChange(draft);}
+  try{const draft=await parser.parse(input.value),explicitDestination=normalizeExplicitDestination(input.value,{origin:draft.fields.origin||draft.interpretation?.origin});if(explicitDestination){draft.fields.destination=explicitDestination;draft.interpretation={...(draft.interpretation||{}),destination:explicitDestination,destinationState:'provided'};draft.needsConfirmation=(draft.needsConfirmation||[]).filter(key=>key!=='destination');}lastDraft=draft;for(const key of [...Object.keys(tripFields),'notes']){const field=form.elements.namedItem(key);field.value=draft.fields[key]??'';field.classList.toggle('needs-confirmation',key==='origin'&&draft.needsConfirmation.includes(key));field.setAttribute('aria-describedby','trip-review');}const total=form.elements.namedItem('totalTripBudgetCny');if(total)total.value=draft.fields.totalTripBudgetCny??draft.interpretation?.totalTripBudgetCny??'';travelIntents.value=draft.fields.travelIntents.join(',');renderReview(draft);onDraftChange(draft);}
   catch{status.hidden=true;review.hidden=false;review.textContent=t('无法理解这段描述，请使用旅行条件表单。','Could not interpret this description. Please use the trip details form.');}
   finally{button.disabled=false;}
  });

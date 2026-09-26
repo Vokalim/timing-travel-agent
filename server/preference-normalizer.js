@@ -1,4 +1,5 @@
 import {PREFERENCE_OUTPUT_SCHEMA,TRAVEL_INTENTS} from './preference-schema.js';
+import {normalizeExplicitDestination} from '../dist/lib/discovery/explicit-destination.js';
 
 const expectedKeys = new Set(PREFERENCE_OUTPUT_SCHEMA.required);
 const places = new Map([
@@ -57,7 +58,9 @@ export function normalizePreferenceOutput(value,input) {
     !(value.pace===null || ['relaxed','balanced','active'].includes(value.pace))) throw new InvalidPreferenceOutputError();
   const warnings=[];
   const origin=groundedPlace(value.origin,value.originEvidence,input);
-  let destination=groundedPlace(value.destination,value.destinationEvidence,input);
+  const explicitDestination=normalizeExplicitDestination(input,{origin});
+  let destination=explicitDestination||groundedPlace(value.destination,value.destinationEvidence,input);
+  if(explicitDestination&&value.destination&&canonicalPlace(value.destination)!==explicitDestination)warnings.push('The explicitly named destination took precedence over the proposed destination.');
   if (value.destination && !destination) warnings.push('The proposed destination was not grounded in a place named in your description, so it was cleared.');
   const earliestDeparture=isoDate(value.earliestDeparture),latestDeparture=isoDate(value.latestDeparture);
   const datesValid=earliestDeparture&&latestDeparture&&latestDeparture>=earliestDeparture&&
