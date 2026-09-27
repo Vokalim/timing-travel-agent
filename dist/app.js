@@ -102,6 +102,7 @@ function render(){
  const detail=cs.length?`<section id="trip-detail" class="detail-shell" hidden>${tripBackLink()}<div class="detail-heading"><div><h2>${tr('这趟旅行','Trip detail')}</h2><p>${route}${b?` · ${date(b.date)} – ${date(b.returnDate)}`:''}</p></div><span class="badge ${d==='WAIT'?'wait':d==='CHANGE DATE'?'change':''}">${displayLabel(d,language)}</span></div>${renderTripHero(tripExperience,language)}${renderTripTimingControls(tripExperience,language)}<div class="timing-copy"><h3>${tr('为什么是这个时间？','Why this timing?')}</h3><p>${reason}</p></div><div class="chart" aria-label="${tr('不同出发日期的旅行总价','Total trip cost by departure date')}">${cs.map(c=>`<button class="bar-col ${c.date===selected?'active':''}" data-date="${c.date}" aria-label="${date(c.date)}, ${money(c.total)}"><strong>${money(c.total)}</strong><span class="bar" style="height:${Math.round(c.total/max*105)}px"><b style="height:${c.flight.price/c.total*100}%"></b></span><span>${date(c.date)}</span></button>`).join('')}</div><div class="table-wrap"><table><thead><tr><th>${tr('出发日期','DEPARTURE')}</th><th>${tr('航班','FLIGHT')}</th><th>${tr('演示酒店 / 晚','DEMO HOTEL / NIGHT')}</th><th>${tr('总价','TOTAL')}</th><th>${tr('匹配度','FIT')}</th></tr></thead><tbody>${cs.map(c=>`<tr class="${c.date===selected?'selected':''}"><td data-label="${tr('出发日期','Departure')}"><button class="row-button" data-date="${c.date}">${date(c.date)} – ${date(c.returnDate)}</button><small>${c.date===b?.date&&b.feasible?tr('✦ 推荐','✦ Recommended'):c.budgetStatus==='unconfirmed'?tr('预算未定','Budget unset'):c.feasible?tr('预算内','Within budgets'):tr('超出预算','Over budget')}</small></td><td data-label="${tr('航班','Flight')}">${money(c.flight.price)}<small>${escape(result.dataSource==='demo'&&language==='zh'?'演示航班':c.flight.airline||'')} · ${c.flight.stops?tr(`${c.flight.stops} 次中转`,`${c.flight.stops} stop${c.flight.stops===1?'':'s'}`):tr('直飞','Nonstop')}</small></td><td data-label="${tr('演示住宿 / 晚','Demo stay / night')}">${money(c.hotel.nightly)}<small>★ ${c.hotel.rating}</small></td><td data-label="${tr('总价','Total')}"><strong>${money(c.total)}</strong></td><td data-label="${tr('匹配度','Fit')}"><span class="score">${c.score}/100</span></td></tr>`).join('')}</tbody></table></div><div class="selection">${selection(cs.find(c=>c.date===selected)||b,t)}</div>${renderTripSections(tripExperience,language)}</section>`:'';
  output.innerHTML=`${result.plan?.dateSource==='system_generated_exploration_window'?`<p class="source-footnote">${tr('以下是系统生成的探索日期，尚未确定；之后可修改具体日期。','These are provisional exploration dates; you can lock exact dates later.')}</p>`:''}${result.plan?.durationRange?`<p class="source-footnote">${tr(`暂按 ${result.plan.nights} 晚比较（建议 ${result.plan.durationRange[0]}–${result.plan.durationRange[1]} 晚），可以修改。`,`Comparing ${result.plan.nights} nights provisionally (${result.plan.durationRange[0]}–${result.plan.durationRange[1]} suggested); editable.`)}</p>`:''}<article class="recommendation"><div class="rec-top"><span class="badge ${d==='WAIT'?'wait':d==='CHANGE DATE'?'change':''}">${displayLabel(d,language)}</span><span class="rec-label">${tr('途米推荐','TIMING RECOMMENDS')}</span></div><h2 class="rec-route">${route}</h2>${b?`<p class="rec-dates">${date(b.date)} – ${date(b.returnDate)}</p>`:''}<p>${reason}</p>${b?`<div class="rec-summary"><div class="rec-cost"><small>${result.dataSource==='live'?tr('含演示酒店估算的旅行总价','TOTAL WITH DEMO HOTEL ESTIMATE'):tr('演示旅行总价估算','DEMO TOTAL ESTIMATE')}</small><strong>${money(b.total)}</strong></div><div class="fit-reasons"><span>${tr('为什么适合你','WHY IT FITS')}</span><ul>${reasonsFor(b,t).map(x=>`<li>${x}</li>`).join('')}</ul></div></div><button type="button" class="view-trip">${tr('查看这趟旅行','View this trip')} →</button>`:''}</article>${detail}<p class="source-footnote">${result.dataSource==='live'?tr('Duffel 实时航班 · 演示酒店数据','Duffel live flights · Demo hotel'):tr('演示数据 · 模拟航班与酒店','Demo data · Mock flight and hotel prices')} · ${p.priority==='comfort'?tr('舒适优先','comfort priority'):tr('性价比优先','best value')}</p>`;
  bindResults();
+ void hydrateTripHero(tripExperience);
  void hydrateLivePlaceAndRoutes(tripWorkspace);
 }
 function selection(c,t){return `<h3>${tr('演示酒店','Demo hotel')} · ${escape(language==='zh'?'酒店参考方案':c.hotel.name)} · ${date(c.date)} – ${date(c.returnDate)}</h3><p>${detailText(c,t)}</p>`}
@@ -116,6 +117,7 @@ function renderStandaloneTrip(state){
  const timing=plan.dateSource==='user_provided'?tr('你选择的旅行时间','Your travel window'):tr('系统生成的探索日期 · 可在旅行条件中修改','Provisional exploration dates · Edit in trip details');
  output.innerHTML=`<section id="trip-detail" class="detail-shell standalone-trip">${tripBackLink()}${renderTripHero(experience,language)}${renderTripTimingControls(experience,language)}<p class="trip-window-list">${windows}</p>${candidate?`<p class="trip-availability">${escape(displayTransportStatus(candidate,language))}</p>`:''}${renderTripSections(experience,language)}</section>`;
  resultsState.hidden=false;document.querySelector('#result-meta').textContent=tr('旅行规划','TRIP PLAN');resultsState.scrollIntoView({behavior:'smooth',block:'start'});
+ void hydrateTripHero(experience);
  void hydrateLivePlaceAndRoutes(tripWorkspace);
 }
 function showClarification(draft){
@@ -158,14 +160,25 @@ function renderDiscovery(data,advance=false){
  bindDiscovery(data);
  hydrateDestinationVisual(best,currentVisualRender,attribution);
  alternatives.forEach(candidate=>hydrateDestinationVisual(candidate,currentVisualRender,attribution));
+ void hydrateTripHero(baseline);
 }
 async function hydrateDestinationVisual(candidate,renderId,attribution){
- const identity=presentDestination(candidate,language),container=[...output.querySelectorAll('[data-destination-visual]')].find(node=>node.dataset.destinationVisual===identity.key);if(!container)return;
- const visual=await visualProvider.resolveVisual(candidate),image=visual.heroImages[0];if(renderId!==visualRenderId||!image||image.kind!=='photograph'||image.destinationId!==identity.key||!container.isConnected)return;
- if(container.querySelector('img')?.getAttribute('src')===image.src)return;
- const next=document.createElement('img');next.src=image.src;next.alt=image.description;next.decoding='async';next.loading=container.classList.contains('feature-art')?'eager':'lazy';next.className=container.classList.contains('feature-art')?'primary-image':'';
- const apply=()=>{if(renderId!==visualRenderId||!container.isConnected)return;container.replaceChildren(next);container.insertAdjacentHTML('beforeend',attribution(image));};
- if(next.complete&&next.naturalWidth)apply();else next.addEventListener('load',apply,{once:true});
+ const identity=presentDestination(candidate,language),containers=[...output.querySelectorAll('[data-destination-visual]')].filter(node=>node.dataset.destinationVisual===identity.key);if(!containers.length)return;
+ const visual=await visualProvider.resolveVisual(candidate),image=visual.heroImages[0];if(renderId!==visualRenderId||!image||image.kind!=='photograph'||image.destinationIdentity!==identity.key)return;
+ for(const container of containers){
+  if(!container.isConnected||container.querySelector('img')?.getAttribute('src')===image.src)continue;
+  const next=document.createElement('img');next.src=image.src;next.alt=image.description;next.decoding='async';next.loading=container.classList.contains('feature-art')?'eager':'lazy';next.className=container.classList.contains('feature-art')?'primary-image':'';
+  const apply=()=>{if(renderId!==visualRenderId||!container.isConnected)return;container.replaceChildren(next);container.insertAdjacentHTML('beforeend',attribution(image));};
+  if(next.complete&&next.naturalWidth)apply();else next.addEventListener('load',apply,{once:true});
+ }
+}
+async function hydrateTripHero(experience){
+ const identity=presentDestination(experience.trip.destination,language),visual=await visualProvider.resolveVisual(experience.trip.destination),image=visual.heroImages[0];
+ if(!image||image.kind!=='photograph'||image.destinationIdentity!==identity.key)return;
+ const template=document.createElement('div');template.innerHTML=renderTripHero(experience,language,visual);const resolvedMedia=template.querySelector('.trip-hero-media');if(!resolvedMedia)return;
+ const preload=resolvedMedia.querySelector('img');if(preload&&!preload.complete)await new Promise(resolve=>{preload.addEventListener('load',resolve,{once:true});preload.addEventListener('error',resolve,{once:true});});
+ if(preload&&!preload.naturalWidth)return;
+ for(const hero of output.querySelectorAll(`[data-trip-hero="${CSS.escape(identity.key)}"]`)){const media=hero.querySelector('.trip-hero-media');if(hero.isConnected&&media&&media.querySelector('img')?.src!==preload?.src)media.replaceWith(resolvedMedia.cloneNode(true));}
 }
 function bindDiscovery(data){
  output.querySelectorAll('[data-region]').forEach(button=>button.addEventListener('click',()=>{discoveryFilter=button.dataset.region;renderDiscovery(data);}));
@@ -203,6 +216,7 @@ function refreshTripModules(){
  const hero=wrapper.querySelector('.trip-hero');if(hero)output.querySelector('.trip-hero')?.replaceWith(hero);
  for(const section of wrapper.querySelectorAll('[data-trip-module]'))output.querySelector(`[data-trip-module="${section.dataset.tripModule}"]`)?.replaceWith(section);
  void hydrateLivePlaceAndRoutes(tripWorkspace);
+ void hydrateTripHero(tripWorkspace.experience);
 }
 async function commitTripRefinement(){
  if(!tripWorkspace)return;preferredTripPace=tripWorkspace.pace;preferredSpendingOrientation=tripWorkspace.spendingOrientation;

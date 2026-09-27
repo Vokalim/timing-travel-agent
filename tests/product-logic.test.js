@@ -74,12 +74,11 @@ test('transport, stay, opening-hours and navigation data preserve verification b
  assert.match(renderTripSections(verified,'zh'),/已核验 · Duffel · ¥880/);
 });
 
-test('required non-text travel collage motifs are present and image count stays restrained',async()=>{
+test('Trip Hero removes collage motifs and unrelated secondary imagery',async()=>{
  const css=await readFile(new URL('../dist/product.css',import.meta.url),'utf8'),app=await readFile(new URL('../dist/app.js',import.meta.url),'utf8');
  assert.match(css,/\.ask-state:before/);assert.match(css,/\.ask-state:after/);
- assert.match(css,/\.destination-pin-motif/);assert.match(css,/\.trip-stamp-motif/);
- assert.match(app,/destination-pin-motif/);
- const visual=new LocalDestinationVisualProvider().getVisual('Harbin');assert.notEqual(visual.heroImages[0].src,visual.scenicImages[0].src);
+ assert.match(app,/hydrateTripHero/);
+ const visual=new LocalDestinationVisualProvider().getVisual('Harbin');assert.equal(visual.scenicImages.length,0);assert.equal(visual.heroImages[0].kind,'illustration');assert.equal(visual.heroImages[0].destinationIdentity,'harbin');
  const {workspace}=await minimalPlan(),html=renderTripSections(workspace.experience,'zh');
  assert.ok((html.match(/<img\b/g)||[]).length<=2);
 });

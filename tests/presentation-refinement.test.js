@@ -38,11 +38,11 @@ test('visual provider selects the right city and category fallback with no cross
  assert.match(chengdu.heroImages[0].description,/Chengdu/);assert.equal(chengdu.specificity,'city');
  assert.match(seoul.heroImages[0].description,/Seoul/);assert.equal(seoul.heroImages[0].kind,'photograph');
  assert.match(paris.heroImages[0].src,/Paris%20Skyline/);assert.equal(paris.specificity,'city');
- assert.equal(sanya.fallbackCategory,'tropical');assert.equal(sanya.specificity,'category');assert.match(sanya.heroImages[0].src,/coastal-editorial/);
+ assert.equal(sanya.fallbackCategory,'tropical');assert.equal(sanya.specificity,'fallback-category');assert.match(sanya.heroImages[0].src,/coastal-editorial/);
  assert.match(provider.getVisual({city:"Xi'an"}).heroImages[0].src,/east-asian-historic/);
  assert.match(provider.getVisual({city:'Harbin'}).heroImages[0].src,/winter-forest/);
  for(const visual of [tokyo,seoul,chengdu,paris,sanya,provider.getVisual({city:'Harbin'})]){
-  assert.ok(visual.heroImages.length+visual.scenicImages.length<=2);
+  assert.equal(visual.heroImages.length+visual.scenicImages.length,1);
   for(const image of [...visual.heroImages,...visual.scenicImages]){
    for(const field of ['url','source','author','license'])assert.equal(typeof image[field],'string');
    assert.equal(typeof image.attributionRequired,'boolean');

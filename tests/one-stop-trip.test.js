@@ -52,9 +52,10 @@ test('stay and itinerary remain available with undecided transport and no flight
  assert.ok(experience.itinerary.stayAreaKeys.includes('central'));
  assert.equal(experience.trip.constraints.strong.centralLocationPreferred,true);
 });
-test('trip detail shows four modules, transparent availability and at most two collage images',async()=>{
+test('trip detail shows four modules, transparent availability and one calm hero image',async()=>{
  const experience=buildTripExperience({trip:route('Hangzhou','最好坐高铁'),flightVerification:{status:'not_checked'}}),html=renderTripHero(experience,'zh')+renderTripSections(experience,'zh');
- assert.ok(tripHeroImages('Hangzhou').length<=MAX_TRIP_COLLAGE_IMAGES);assert.equal((html.match(/<img\b/g)||[]).length,2);
+ assert.equal(MAX_TRIP_COLLAGE_IMAGES,1);assert.equal(tripHeroImages('Hangzhou').length,1);assert.equal((html.match(/<img\b/g)||[]).length,1);
+ assert.doesNotMatch(html,/trip-hero-small|trip-route-motif|trip-stamp-motif/);
  for(const module of ['transport','stay','itinerary'])assert.match(html,new RegExp(`data-trip-module="${module}"`));
  assert.match(html,/实时车次与票价暂未接入/);assert.match(html,/住宿实时价格与库存暂未接入/);
  assert.doesNotMatch(html,/高铁\s*¥|自驾\s*¥|2h12m|酒店已确认/);

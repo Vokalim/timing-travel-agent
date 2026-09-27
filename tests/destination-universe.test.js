@@ -125,14 +125,16 @@ test('localized identity, reasons and status do not mutate hub or canonical iden
  assert.doesNotMatch([zh.statement,...zh.tags,zh.transportStatus].join(' '),/\b(food|culture|not_checked|broad_month|self_drive)\b/);
 });
 
-test('visuals select city, region, scenery and global fallback regardless of language',async()=>{
+test('visuals select verified city photography or an honest non-photo fallback regardless of language',async()=>{
  const provider=new LocalDestinationVisualProvider();
  const city=provider.getVisual('Tokyo'),region=provider.getVisual('Sapporo'),category=provider.getVisual('Dunhuang'),grass=provider.getVisual('Hulunbuir'),unknown=provider.getVisual({city:'Unknown Place'});
- assert.deepEqual([city.specificity,region.specificity,category.specificity,unknown.specificity],['city','region','category','global']);
+ assert.deepEqual([city.specificity,region.specificity,category.specificity,unknown.specificity],['city','fallback-category','fallback-category','fallback-neutral']);
  assert.match(category.heroImages[0].src,/desert-landscape/);assert.match(grass.heroImages[0].src,/grassland-landscape/);
  assert.equal(provider.getVisual('会安').destinationKey,provider.getVisual('Hoi An').destinationKey);
  for(const visual of [city,region,category,grass,unknown])for(const image of [...visual.heroImages,...visual.scenicImages]){
   assert.ok(image.url&&image.source&&image.license);
+  assert.equal(image.destinationIdentity,visual.destinationKey);
+  if(visual.specificity.startsWith('fallback'))assert.equal(image.kind,'illustration');
   if(image.src.startsWith('/assets/'))assert.ok((await stat(new URL(`../dist${image.src}`,import.meta.url))).size>100);
   else assert.match(image.src,/^https:\/\/commons\.wikimedia\.org\//);
  }

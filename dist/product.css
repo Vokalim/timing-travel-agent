@@ -421,3 +421,76 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
  .ask-editorial-copy .ask-box .ask-actions{margin-inline:24px}
 }
 .trip-research-sources{margin-top:16px;color:var(--muted,#65746c);font-size:.8rem}.trip-research-sources summary{cursor:pointer;color:var(--ink,#173c2c);font-weight:650}.trip-research-sources p{max-width:62ch;margin:10px 0 6px}.trip-research-sources ul{margin:0;padding-left:18px}.trip-research-sources a{color:inherit;text-underline-offset:3px}
+
+/* Trip hero: one destination-specific editorial image, shared with Discovery. */
+.trip-hero{
+ display:block;
+ min-height:0;
+ margin:12px 0 72px;
+ overflow:visible;
+ border:0;
+ border-radius:0;
+ background:transparent;
+}
+.trip-hero-copy{
+ display:block;
+ max-width:920px;
+ padding:0 0 25px;
+ color:#214232;
+}
+.trip-hero-copy>span{display:block;margin-bottom:10px;color:#7d6b59;font-size:10px;letter-spacing:.18em}
+.trip-hero-copy>strong.trip-hero-route-title{
+ display:block;
+ font-family:'Playfair Display','Noto Serif SC',serif;
+ font-size:clamp(36px,4.8vw,62px);
+ font-weight:500;
+ line-height:1.08;
+ letter-spacing:-.035em;
+}
+.trip-hero-copy .trip-hero-facts{margin:14px 0 4px;color:#355b45;font-size:18px}
+.trip-hero-copy>p:not(.trip-hero-facts){margin:0;color:#6d7d72;font-size:13px}
+.trip-hero-copy .trip-summary-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:18px}
+.trip-hero-media{
+ position:relative;
+ width:100%;
+ margin:0;
+ background:#e4e9df;
+ border-radius:4px 32px 4px 4px;
+ box-shadow:0 22px 52px rgba(25,52,37,.11);
+}
+.trip-hero-image{
+ display:block;
+ width:100%;
+ aspect-ratio:16/9;
+ max-height:590px;
+ object-fit:cover;
+ object-position:center;
+ border-radius:inherit;
+ filter:saturate(.86) contrast(.97);
+}
+.trip-hero-media>.photo-attribution{
+ position:absolute;
+ z-index:2;
+ right:10px;
+ bottom:9px;
+ left:auto;
+ display:block;
+ max-width:calc(100% - 20px);
+ padding:4px 7px;
+ border-radius:4px;
+ background:rgba(18,35,25,.64);
+ color:#f4f2ea;
+ font-size:8px;
+ line-height:1.25;
+ text-align:right;
+}
+.trip-hero-media>.photo-attribution a{color:inherit;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.5)}
+
+@media(max-width:760px){
+ .trip-hero{margin:8px 0 54px}
+ .trip-hero-copy{padding:0 0 20px}
+ .trip-hero-copy>strong.trip-hero-route-title{font-size:clamp(32px,10vw,45px)}
+ .trip-hero-copy .trip-hero-facts{font-size:16px}
+ .trip-hero-media{border-radius:3px 22px 3px 3px}
+ .trip-hero-image{max-height:none;aspect-ratio:1.55/1}
+}
