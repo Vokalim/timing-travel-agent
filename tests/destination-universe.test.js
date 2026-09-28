@@ -38,9 +38,9 @@ test('strict LLM candidate schema accepts real curated places without direct IAT
  assert.match(request.instructions,/Nara.*Hoi An|Hoi An.*Nara/);assert.doesNotMatch(request.instructions,/Choose only from Beijing \(BJS\)/);
 });
 
-test('curated fallback generates 15–30 non-capital and mixed geography candidates',async()=>{
+test('curated fallback generates a broad 30–80 candidate pool with regional depth',async()=>{
  const generated=await demo.discover(base,{inferredTravelIntents:['food','snow_winter']});
- assert.equal(generated.candidates.length,30);assert.ok(generated.candidates.some(c=>c.city==='Yanji'));
+ assert.equal(generated.candidates.length,80);assert.ok(generated.candidates.some(c=>c.city==='Yanji'));
  assert.ok(generated.candidates.some(c=>c.countryOrRegion==='China'));assert.ok(generated.candidates.some(c=>c.countryOrRegion!=='China'));
  assert.ok(generated.candidates.some(c=>c.iataOrMetroCode===null));
 });

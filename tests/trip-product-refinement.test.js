@@ -114,7 +114,7 @@ test('home centers the input with restrained editorial composition and no sticke
  const focused=css.slice(css.lastIndexOf('/* Editorial travel product'));
  assert.match(focused,/\.ask-editorial-copy\{[^}]*width:min\(100%,850px\);margin:0 auto/);
  assert.match(focused,/\.ask-editorial-copy \.ask-box\{[^}]*max-width:760px;margin:0 auto/);
- assert.match(focused,/\.ask-editorial-copy \.hero-copy h1\{[^}]*font-size:clamp\(48px,5\.2vw,70px\)/);
+ assert.match(css.slice(css.lastIndexOf('/* Journey V2:')),/\.world-copy h1,\.signal-stage \.ask-editorial-copy \.hero-copy h1\{[^}]*font-family:Inter/);
  assert.match(html,/class="ask-editorial-accent"/);
  assert.doesNotMatch(html,/class="ask-sticker-collage"|id="sticker-/);
  assert.doesNotMatch(html,/<aside class="ask-photo-collage"/);

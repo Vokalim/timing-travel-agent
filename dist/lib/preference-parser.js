@@ -1,6 +1,7 @@
 import {TRAVEL_INTENTS} from './trip-request.js';
 import {parsePreferenceConstraints} from './preference-constraints.js';
 import {normalizeExplicitDestination} from './discovery/explicit-destination.js';
+import {DESTINATION_UNIVERSE} from './discovery/destination-universe.js';
 
 export const tripFields = {
   origin:'Origin', destination:'Destination', start:'Earliest departure (including year)',
@@ -44,6 +45,10 @@ export class DemoPreferenceParser extends PreferenceParser {
       fields.origin = route[0][1].trim();
       const proposed=route[0][2].trim();
       if (!/^(?:a |an |the )?(?:beach|somewhere|someplace|warm place|place to hike|christmas destination)$/i.test(proposed)) fields.destination=proposed;
+    }
+    if (!fields.origin) {
+      const catalogOrigin=DESTINATION_UNIVERSE.find(entity=>[entity.names.zh,entity.canonicalName].some(name=>new RegExp(`(?:从)?${name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\s*(?:出发|出發|departing)`,`i`).test(text)));
+      if(catalogOrigin)fields.origin=catalogOrigin.canonicalName;
     }
     if (!fields.origin) {
       const found=[['上海','Shanghai'],['北京','Beijing'],['广州','Guangzhou'],['深圳','Shenzhen'],['成都','Chengdu'],['重庆','Chongqing'],['长沙','Changsha'],['南昌','Nanchang'],['厦门','Xiamen'],['三亚','Sanya'],['昆明','Kunming'],['大理','Dali'],['丽江','Lijiang'],['桂林','Guilin'],['西安',"Xi'an"],['杭州','Hangzhou'],['南京','Nanjing'],['青岛','Qingdao'],['哈尔滨','Harbin'],['香港','Hong Kong']].find(([name])=>text.includes(name));

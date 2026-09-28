@@ -26,11 +26,19 @@ export function parsePreferenceConstraints(text='', existing={}) {
  if(has(/不能超预算|预算上限|預算上限|严格预算|嚴格預算|strict budget|hard budget cap/))hard.strictBudgetCap=true;
  if(has(/只去国内|只看国内|仅限国内|domestic only/))hard.geography='domestic';
  if(has(/只去国外|只看国外|仅限出境|international only/))hard.geography='international';
- const exclusions=[...(t.matchAll(/(?:不要去|排除|避开|避開|exclude|not (?:to|in))\s*([\p{L}][\p{L}\s'-]{1,24})/gu))].flatMap(m=>m[1].trim().replace(/[，。,;.!].*$/,'').split(/\s+and\s+|\s*和\s*/i));
+ const regionPreferences=[['europe',/想去欧洲|想看欧洲|欧洲看看|prefer europe|want to (?:visit|see|go to) europe/],['south_america',/想去南美|南美看看|prefer south america|want to (?:visit|see|go to) south america/],['north_america',/想去北美|北美看看|prefer north america|want to (?:visit|see|go to) north america/],['southeast_asia',/想去东南亚|东南亚看看|prefer southeast asia|want to (?:visit|see|go to) southeast asia/],['oceania',/想去澳洲|想去大洋洲|prefer oceania|want to (?:visit|see|go to) (?:australia|oceania)/]];
+ const preferredRegions=[...new Set([...(strong.preferredRegions||[]),...regionPreferences.filter(([,pattern])=>has(pattern)).map(([region])=>region)])];if(preferredRegions.length)strong.preferredRegions=preferredRegions;
+ const countryPreferences=[['JP',/想去日本|日本看看|prefer japan|want to (?:visit|see|go to) japan/],['FR',/想去法国|法国看看|prefer france|want to (?:visit|see|go to) france/],['IT',/想去意大利|意大利看看|prefer italy|want to (?:visit|see|go to) italy/],['GB',/想去英国|英国看看|prefer (?:the )?uk|want to (?:visit|see|go to) (?:the )?(?:uk|united kingdom)/]];
+ const preferredCountries=[...new Set([...(strong.preferredCountries||[]),...countryPreferences.filter(([,pattern])=>has(pattern)).map(([country])=>country)])];if(preferredCountries.length)strong.preferredCountries=preferredCountries;
+ if(has(/想去远一点|想走远一点|远途|farther away|long.?haul adventure/))strong.fartherPreferred=true;
+ if(has(/周边游|附近走走|就近|nearby trip|close to home/))strong.nearbyPreferred=true;
+ if(has(/不想坐太久飞机|不想飞太久|飞行别太久|avoid long flights?|don['’]t want (?:a )?long flight/))strong.shorterFlightPreferred=true;
+ const regionExclusions=[['亚洲',/不要亚洲|避开亚洲|避開亞洲|exclude asia|not in asia/],['欧洲',/不要欧洲|避开欧洲|避開歐洲|exclude europe|not in europe/],['北美',/不要北美|避开北美|避開北美|exclude north america|not in north america/],['南美',/不要南美|避开南美|避開南美|exclude south america|not in south america/]].filter(([,pattern])=>has(pattern)).map(([region])=>region);
+ const exclusions=[...regionExclusions,...[...(t.matchAll(/(?:不要去|排除|避开|避開|exclude|not (?:to|in))\s*([\p{L}][\p{L}\s'-]{1,24})/gu))].flatMap(m=>m[1].trim().replace(/[，。,;.!].*$/,'').split(/\s+and\s+|\s*和\s*/i))];
  hard.excludedDestinations=[...new Set([...(hard.excludedDestinations||[]),...exclusions])];
  const strongPatterns={shorterFlightPreferred:/飞行时间短|短航程|shorter flights?|short flight time/,daytimeFlightsPreferred:/白天航班|白天飞|daytime flights?/,fewerTransfersPreferred:/少中转|少轉機|fewer transfers?|fewer stops?/,comfortPreferred:/舒适|舒適|comfort|豪华|luxury/,centralLocationPreferred:/市中心|中心地段|central location|city cent(?:er|re)/,seasidePreferred:/海边|海邊|seaside|coast|beach/,mountainPreferred:/山景|山里|看山|山野|mountains?/,naturePreferred:/亲近自然|親近自然|prefer nature/,higherRatedHotelsPreferred:/高评分酒店|高評分酒店|highly rated hotels?/,convenientTransportPreferred:/交通方便|交通便利|convenient transport|easy transit/};
  for(const [key,re] of Object.entries(strongPatterns))if(has(re))strong[key]=true;
- const softPatterns={localFood:/当地特色|當地特色|美食|food|local cuisine/,shopping:/购物|購物|shopping/,photography:/摄影|攝影|拍照|photography/,nightlife:/夜生活|nightlife/,relaxation:/放松|放空|relax/,slowTravel:/慢旅行|慢节奏|慢節奏|slow travel/,culture:/文化|culture/,nature:/自然|nature/,family:/亲子|親子|family/,romantic:/浪漫|romantic/,quietAreas:/安静|安靜|quiet/,lessCrowded:/人少|避开人群|避開人群|less crowded/};
+ const softPatterns={localFood:/当地特色|當地特色|美食|food|local cuisine/,architecture:/建筑|建築|architecture/,shopping:/购物|購物|shopping/,photography:/摄影|攝影|拍照|photography/,nightlife:/夜生活|nightlife/,relaxation:/放松|放空|relax/,slowTravel:/慢旅行|慢节奏|慢節奏|slow travel/,culture:/文化|culture/,nature:/自然|nature/,family:/亲子|親子|family/,romantic:/浪漫|romantic/,quietAreas:/安静|安靜|quiet/,lessCrowded:/人少|避开人群|避開人群|less crowded/};
  for(const [key,re] of Object.entries(softPatterns))if(has(re))soft[key]=has(/特别|非常|很|最|especially|really|love|highly/)?2:1;
  const pace=has(/节奏慢|節奏慢|慢一点|慢一點|不想太赶|不要太赶|slow pace|relaxed pace|not too rushed/)?'relaxed':existing.pace??null;
  return {hard,strong,soft,pace,rawText};
@@ -38,7 +46,7 @@ export function parsePreferenceConstraints(text='', existing={}) {
 
 export function isExcludedDestination(hard={},city='',country=''){
  const places=hard.excludedDestinations||[],name=String(city).toLowerCase(),region=String(country).toLowerCase();
- const europe=new Set(['france','united kingdom']),asia=new Set(['china','mainland china','japan','south korea','singapore','thailand','hong kong sar']);
+ const europe=new Set(['france','united kingdom','portugal','spain','italy','austria','belgium','switzerland','netherlands','germany','czechia','hungary','poland','slovenia','croatia','greece','denmark','sweden','norway','estonia','ireland','türkiye']),asia=new Set(['china','mainland china','japan','south korea','singapore','thailand','hong kong sar','vietnam','malaysia','philippines','indonesia','georgia','united arab emirates','oman','kazakhstan','uzbekistan']);
  return places.some(place=>{const excluded=String(place).toLowerCase();return excluded===name||excluded===region||
   (['欧洲','europe'].includes(excluded)&&europe.has(region))||(['亚洲','asia'].includes(excluded)&&asia.has(region))||
   (['国内','中国','china'].includes(excluded)&&region==='china')||(['国外','international'].includes(excluded)&&region!=='china')||
