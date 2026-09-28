@@ -52,17 +52,25 @@ test('visual provider selects the right city and category fallback with no cross
  }
 });
 
-test('Home uses a restrained editorial accent while Discover renders required photo attribution',async()=>{
+test('Home opens from an editorial world and Discover uses an accessible constellation with attributed photography',async()=>{
  const [html,app,css]=await Promise.all(['index.html','app.js','product.css'].map(name=>readFile(new URL(`../dist/${name}`,import.meta.url),'utf8')));
  const home=html.match(/<section id="ask-state"[\s\S]*?<\/section>\s*<section id="results-state"/)?.[0]||'';
  assert.doesNotMatch(home,/<img\b/);
  assert.doesNotMatch(home,/ask-sticker|sticker-suitcase|sticker-passport|sticker-camera|sticker-map/);
+ assert.match(home,/data-entry-state="world"/);
+ assert.match(home,/id="world-trigger"/);
+ assert.match(home,/class="editorial-world"/);
+ assert.match(home,/class="ask-editorial-layout signal-stage" hidden/);
  assert.match(home,/class="ask-editorial-accent"/);
- assert.match(app,/class="photo-attribution"/);assert.match(app,/hydrateDestinationVisual/);assert.match(app,/loading="\$\{index\?'lazy':'eager'\}"/);
- const cleanup=css.slice(css.lastIndexOf('/* Editorial travel product'));
- assert.match(cleanup,/:focus-visible\{outline:none!important/);assert.doesNotMatch(cleanup,/orange|#c59245/i);
- assert.match(cleanup,/\.feature-art\{[^}]*min-height:620px[^}]*overflow:hidden/);
- assert.match(cleanup,/\.idea-visual\{[^}]*width:100%[^}]*height:250px/);
+ assert.match(app,/class="photo-attribution"/);assert.match(app,/hydrateDestinationVisual/);
+ assert.match(app,/class="destination-point/);assert.match(app,/class="destination-expansion"/);
+ assert.match(app,/discoverySession\.next\(pageKey,visible,pagePreferences,3\)/);
+ assert.doesNotMatch(app,/\$\{[^}]*%[^}]*\}[^\n]*(?:契合|match)/i);
+ const entry=css.slice(css.lastIndexOf('/* Entry experience:'));
+ assert.match(entry,/\.world-stage\{/);assert.match(entry,/\.discovery-constellation\{/);
+ assert.match(entry,/\.destination-expansion\{/);assert.match(entry,/@media\(prefers-reduced-motion:reduce\)/);
+ assert.match(entry,/\.signal-stage \.ask-box textarea\{padding:22px 27px/);
+ assert.match(entry,/\.destination-point:focus-visible/);
 });
 
 test('inspiration taxonomy covers holidays, scenery, and travel styles without trending claims',async()=>{

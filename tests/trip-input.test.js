@@ -20,7 +20,7 @@ test('real index Explore button uses the app entry and successful preference API
   assert.equal(exploreTags.length,1);
   assert.match(exploreTags[0],/\btype="button"/);
   assert.match(html,/<script\b[^>]*\btype="module"[^>]*\bsrc="\/app\.js"/);
- assert.match(app,/setupTripInput\([\s\S]*,completePlanParser\)/);
+ assert.match(app,/setupTripInput\([\s\S]*completePlanParser,\{deferSubmission:true\}\)/);
   const fields=Object.fromEntries(['origin','destination','start','end','nights','flightBudget','hotelBudget','rating','notes'].map(name=>[name,new Element({name})]));
   const form=new Element();form.elements={namedItem:name=>fields[name]};
   const input=new Element({value:'From Shanghai to a beach for 5 days.'});
@@ -47,6 +47,35 @@ test('real index Explore button uses the app entry and successful preference API
   assert.equal(receivedDraft.fields.destination,undefined);
   assert.deepEqual(receivedDraft.fields.travelIntents,['beach']);
   assert.doesNotMatch(review.children[0].textContent,/fallback/i);
+});
+
+test('entry signal flow interprets once, shows extracted nodes, then sends the reviewed draft',async()=>{
+ const fields=Object.fromEntries(['origin','destination','start','end','nights','flightBudget','hotelBudget','rating','notes'].map(name=>[name,new Element({name})]));
+ const form=new Element();form.elements={namedItem:name=>fields[name]};
+ const input=new Element({value:'12月从上海出发，想去海边，预算8000左右。'});
+ const button=new Element(),review=new Element(),status=new Element();
+ const elements={'#trip-description':input,'#interpret-trip':button,'#trip-review':review,'#agent-status':status};
+ const previousDocument=globalThis.document;
+ globalThis.document={documentElement:{lang:'zh-CN'},querySelector:selector=>elements[selector],createElement:()=>new Element(),addEventListener(){}};
+ let parseCount=0,submitted;
+ const draft={fields:{origin:'Shanghai',destination:undefined,start:undefined,end:undefined,nights:undefined,flightBudget:undefined,hotelBudget:undefined,rating:undefined,notes:'',travelIntents:['beach'],totalTripBudgetCny:8000},dateHint:'12月',needsConfirmation:['destination'],interpretation:{destination:null,destinationState:'discovery_required',departureWindowText:'12月',totalTripBudgetCny:8000,travelIntents:['beach']},parserStatus:'ai',source:'openai'};
+ try{
+  setupTripInput(form,value=>{submitted=value;},{parse:async()=>{parseCount+=1;return structuredClone(draft);}},{deferSubmission:true});
+  await button.click();
+  assert.equal(submitted,undefined);
+  assert.equal(parseCount,1);
+  assert.equal(button.dataset.signalMode,'send');
+  assert.equal(status.hidden,true);
+  const nodeField=review.children.find(child=>child.className==='signal-node-field');
+  assert.ok(nodeField);
+  assert.ok(nodeField.children.some(child=>child.dataset.signalKind==='origin'&&child.textContent==='上海'));
+  assert.ok(nodeField.children.some(child=>child.dataset.signalKind==='time'&&child.textContent==='12月'));
+  assert.ok(nodeField.children.some(child=>child.dataset.signalKind==='budget'&&child.textContent==='¥8,000'));
+  await button.click();
+ } finally {globalThis.document=previousDocument;}
+ assert.equal(parseCount,1);
+ assert.equal(submitted.source,'openai');
+ assert.equal(button.dataset.signalMode,'interpret');
 });
 
 test('optional form fields are not required and reviewed preferences have a concise visible summary',async()=>{

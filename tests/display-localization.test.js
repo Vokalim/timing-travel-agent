@@ -55,6 +55,6 @@ test('representative Chinese discovery and trip display contain no raw taxonomy 
 test('language toggle re-renders discovery and trip from canonical state',async()=>{
  const app=await readFile(new URL('../dist/app.js',import.meta.url),'utf8');
  assert.match(app,/if\(result\)\{[\s\S]*?render\(\);if\(tripWasOpen\)output\.querySelector\('#trip-detail'\)\.hidden=false;\}else if\(independentTrip\)renderStandaloneTrip\(independentTrip\);else if\(discoveryResult\)/);
- assert.match(app,/presentDiscoveryCandidate\(best,data,language\)/);
+ assert.match(app,/presentDiscoveryCandidate\(candidate,data,language\)/);
  assert.match(app,/displayLabel\(d,language\)/);
 });
