@@ -16,7 +16,7 @@ export function normalizeCanonicalPoi(value){
  if(!value?.id||!value?.provider||!value?.providerPlaceId||!names?.en||!coordinates)throw new Error('Provider POI is incomplete.');
  return {
   id:String(value.id),provider:String(value.provider),providerPlaceId:String(value.providerPlaceId),
-  canonicalName:String(value.canonicalName||names.en),displayName:String(value.displayName||names.zh||names.en),names:{zh:String(names.zh||names.en),en:String(names.en)},
+  canonicalName:String(value.canonicalName||names.en),displayName:String(value.displayName||names.zh||names.en),sourceName:String(value.sourceName||value.canonicalName||names.en),names:{zh:names.zh?String(names.zh):null,en:String(names.en)},description:{zh:value.description?.zh||null,en:value.description?.en||null},
   destinationId:String(value.destinationId||''),category:String(value.category||'attraction'),areaKey:value.areaKey||geographicAreaKey(coordinates),coordinates,
   source:'provider',sourceAttribution:value.sourceAttribution||null,verificationState:value.verificationState||VerificationState.LIVE_VERIFIED,
   openingHours:null,rating:null,photos:[],address:null,dataFetchedAt:value.dataFetchedAt||new Date().toISOString()
@@ -26,7 +26,7 @@ export function normalizeCanonicalPoi(value){
 export function normalizeTravelPoi(value){
  const names=value?.names||value?.localizedName||{zh:value?.displayName,en:value?.displayName},coordinates=value?.coordinates||canonicalCoordinates(value?.lat,value?.lng,value?.coordinateSystem);
  if(!value?.id||!value?.provider||!value?.providerPlaceId||!names?.en)throw new Error('Travel POI identity is incomplete.');
- return {id:String(value.id),provider:String(value.provider),providerPlaceId:String(value.providerPlaceId),canonicalName:String(value.canonicalName||names.en),displayName:String(value.displayName||names.zh||names.en),names:{zh:String(names.zh||names.en),en:String(names.en)},
+ return {id:String(value.id),provider:String(value.provider),providerPlaceId:String(value.providerPlaceId),canonicalName:String(value.canonicalName||names.en),displayName:String(value.displayName||names.zh||names.en),sourceName:String(value.sourceName||value.canonicalName||names.en),names:{zh:names.zh?String(names.zh):null,en:String(names.en)},description:{zh:value.description?.zh||null,en:value.description?.en||null},
   destinationId:String(value.destinationId||''),destination:value.destination||null,country:value.country||null,category:String(value.category||'culture'),areaKey:value.areaKey||geographicAreaKey(coordinates),coordinates,
   source:value.source||'open_research',sourceType:value.sourceType||'open_knowledge',sourceId:value.sourceId||value.providerPlaceId,sourceUrl:value.sourceUrl||null,sourceAttribution:value.sourceAttribution||null,provenance:value.provenance||[],
   verificationState:value.verificationState||(coordinates?VerificationState.OPEN_SOURCE_VERIFIED:VerificationState.PROVIDER_PARTIAL),planningTags:[...new Set((value.planningTags||[]).map(String))],planningSignals:value.planningSignals||{},openingHours:null,rating:null,photos:[],address:null,dataFetchedAt:value.dataFetchedAt||new Date().toISOString()};

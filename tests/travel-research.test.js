@@ -68,7 +68,7 @@ test('research POIs create concrete pace-aware itineraries and coordinate footpr
 test('research provenance is visible but restrained, and edits preserve unrelated days',()=>{
  const places=Array.from({length:12},(_,index)=>poi(`Paris Place ${index+1}`,{tags:index%2?['art']:['architecture'],lat:48.84+(index%4)*.002,lng:2.32+Math.floor(index/4)*.003})),session=new TripWorkspaceSession({trip:{origin:'Shanghai',destination:'Paris',nights:3,notes:'喜欢艺术'}});session.applyResearchResult(researchResult('paris',places));
  const untouched=session.experience.itinerary.days[1],first=session.experience.itinerary.days[0].activities[0];session.removeActivity(1,first.id);assert.equal(session.experience.itinerary.days[1],untouched);
- const html=renderTripSections(session.experience,'zh');assert.match(html,/开放旅行资料 · Wikivoyage/);assert.match(html,/数据与来源/);assert.match(html,/CC BY-SA 4.0/);assert.doesNotMatch(html,/OPEN_SOURCE_VERIFIED/);
+ const html=renderTripSections(session.experience,'zh');assert.match(html,/公开旅行资料 · 营业时间暂未查询/);assert.match(html,/数据与来源/);assert.match(html,/CC BY-SA 4.0/);assert.doesNotMatch(html,/OPEN_SOURCE_VERIFIED/);
 });
 
 test('provider timeout falls back safely in the product and never creates fake verification',async()=>{
