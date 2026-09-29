@@ -16,7 +16,7 @@ const now=new Date('2026-09-18T00:00:00Z');
 async function minimalPlan(){
  const parsed=applyCompletePlanDefaults(await new DemoPreferenceParser().parse('12月想出去玩'));
  const request=createTripRequest({...parsed.fields,destination:null,departureWindowText:parsed.dateHint});
- const planning=prepareExploration(request,{now,language:'zh'});
+ const planning=prepareExploration(request,{now,language:'zh',allowMissingOrigin:true});
  const discovery=await discoverDestinations({...request,durationDays:planning.nights},{now,language:'zh',mode:'demo',discoveryService:new DemoDestinationDiscoveryService()});
  const candidate=discovery.candidates[0];
  const workspace=new TripWorkspaceSession({trip:{...planning.trip,destination:candidate.city,nights:planning.nights},plan:planning,candidate,flightVerification:candidate.verification});
@@ -25,7 +25,7 @@ async function minimalPlan(){
 
 test('minimal broad idea produces a complete editable starting plan with explicit defaults',async()=>{
  const {parsed,planning,discovery,workspace}=await minimalPlan();
- assert.equal(parsed.fields.origin,'Shanghai');assert.equal(parsed.originAssumption,true);
+ assert.equal(parsed.fields.origin,undefined);assert.equal(parsed.originAssumption,false);
  assert.ok(discovery.candidates.length>=15);assert.ok(planning.windows.length);
  assert.equal(workspace.pace,'balanced');assert.equal(workspace.spendingOrientation,'value');
  assert.ok(workspace.experience.transport.preferredMode);assert.ok(workspace.experience.stay.primaryArea);

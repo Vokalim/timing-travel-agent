@@ -93,18 +93,18 @@ test('explicit beach and food intents influence the December pool',()=>{
  const food=new InspirationService({seed:42}).getIdeas(options('12月想吃东西'));
  assert.equal(beach[0].key,'warm_beach');assert.ok(beach.filter(idea=>idea.intent==='beach').length>=2);
  assert.ok(food.filter(idea=>idea.intent==='food').length>=2);
- assert.ok(beach.some(idea=>idea.group==='holiday')&&food.some(idea=>idea.group==='scenery'));
+ assert.ok(beach.some(idea=>idea.group==='holiday'));assert.ok(new Set(food.map(idea=>idea.group)).size>=3);
 });
 
 test('requested month outranks current December and holiday signals follow the travel window',()=>{
  const july=new InspirationService({seed:1}).getEligiblePool(options('7月'));
  assert.ok(july.every(idea=>!['festive','christmas_lights','europe_christmas','snow_winter'].includes(idea.key)));
  const spring=new InspirationService({seed:1}).getEligiblePool(options('2026年2月'));
- assert.ok(spring.some(idea=>idea.key==='spring_festival'));
+ assert.ok(spring.every(idea=>idea.key!=='spring_festival')); // UI language alone does not imply Chinese holiday context
  assert.equal(createTemporalContext({departureWindowText:'2026年2月'},{now}).year,2026);
  assert.equal(createTemporalContext({departureWindowText:'2027-07-01'},{now}).month,7);
  const noDate=new InspirationService({seed:1}).getEligiblePool({text:'',now:new Date('2026-10-03T00:00:00Z')});
- assert.ok(noDate.some(idea=>idea.key==='national'));
+ assert.ok(noDate.every(idea=>idea.key!=='national')); // unresolved origin does not imply China
  assert.ok(new InspirationService({seed:1}).getEligiblePool(options('元宵想出去玩')).some(idea=>idea.key==='lantern_festival'));
 });
 

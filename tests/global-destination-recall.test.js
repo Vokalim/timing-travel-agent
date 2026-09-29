@@ -58,6 +58,15 @@ test('explicit Europe preference overrides proximity for Tokyo while retaining g
  assert.ok(result.candidates.some(item=>continent(item)==='asia'));
 });
 
+
+test('explicit Asia preference overrides proximity from Paris and Birmingham',async()=>{
+ for(const origin of ['Paris, France','Birmingham, United Kingdom']){
+  const result=await discover({origin,durationDays:10,travelIntents:['food'],notes:'想去亚洲旅行，喜欢当地美食'}),top=result.candidates.slice(0,10);
+  assert.ok(top.filter(item=>continent(item)==='asia').length>=6);
+  assert.ok(result.candidates.some(item=>continent(item)==='europe'));
+ }
+});
+
 test('fallback parser resolves any catalog origin before complete-plan defaults apply',async()=>{
  const draft=await new DemoPreferenceParser().parse('东京出发，想去欧洲看看，小城市也可以，10天');
  assert.equal(draft.fields.origin,'Tokyo');assert.equal(draft.fields.nights,10);assert.equal(draft.interpretation.destination,null);

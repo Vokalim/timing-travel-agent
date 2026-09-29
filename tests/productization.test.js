@@ -96,5 +96,5 @@ test('consumer shell keeps bilingual UI and hides technical diagnostics',async()
  assert.match(html,/id="lang-zh"/);assert.match(html,/id="lang-en"/);assert.match(html,/class="chips"[^>]*><\/div>/);
  assert.doesNotMatch(html,/brand-orbit|discovery_required|parserStatus|source=openai|Broad travel window captured/);
  assert.doesNotMatch(review,/主题暂不影响当前评分|Broad travel window captured|目的地状态/);
- assert.match(app,/inspireLabel:'Good for this season'/);
+ assert.match(app,/inspireLabel:'Follow this idea'/);
 });

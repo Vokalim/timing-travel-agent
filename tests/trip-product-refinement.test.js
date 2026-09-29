@@ -17,7 +17,7 @@ test('opening a destination preserves the exact discovery page and back path doe
  const after=session.page('stable',snapshot.data.candidates,preferences,3).map(item=>item.city);
  assert.deepEqual(after,before);assert.equal(snapshot.selectedCandidate.city,'Paris');
  const app=await readFile(new URL('../dist/app.js',import.meta.url),'utf8');
- assert.match(app,/discoverySnapshot=\{data,filter:discoveryFilter,selectedCandidate:chosenCandidate\}/);
+ assert.match(app,/discoverySnapshot=\{data,filter:discoveryFilter,selectedCandidate:chosenCandidate,travelSignal:travelSignalSession\.snapshot\(\)\}/);
  assert.match(app,/function restoreDiscovery[\s\S]*renderDiscovery\(discoveryResult\)/);
  assert.doesNotMatch(app.match(/function restoreDiscovery[\s\S]*?\n}/)?.[0]||'',/discoverDestinations\(/);
 });

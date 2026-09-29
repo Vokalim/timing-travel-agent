@@ -3,9 +3,9 @@ import {createTemporalContext,planRepresentativeDateWindows} from './discovery/t
 import {createTripRequest} from './trip-request.js';
 
 // Bounded, provisional search assumptions; never presented as user-provided facts.
-export function prepareExploration(input,{now=new Date(),language='zh'}={}) {
+export function prepareExploration(input,{now=new Date(),language='zh',allowMissingOrigin=false}={}) {
  const trip=createTripRequest(input);
- if(!trip.origin?.trim())throw new Error(language==='zh'?'先告诉途米从哪里出发。':'Tell Timing where you are leaving from.');
+ if(!allowMissingOrigin&&!trip.origin?.trim())throw new Error(language==='zh'?'先告诉途米从哪里出发。':'Tell Timing where you are leaving from.');
  const context=createTemporalContext({earliestDeparture:trip.start||null,latestDeparture:trip.end||null,departureWindowText:trip.departureWindowText||''},{now,language});
  const durationProvided=Number.isInteger(trip.nights)&&trip.nights>0;
  const durationRange=durationProvided?null:context.kind==='relative_weekend'?[2,3]:[4,6];
